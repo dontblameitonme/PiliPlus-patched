@@ -56,7 +56,7 @@ class _FavArticlePageState extends State<FavArticlePage>
             ? SliverGrid.builder(
                 gridDelegate: gridDelegate,
                 itemBuilder: (context, index) {
-                  if (index == response.length - 1) {
+                  if (index >= response.length - 4) {
                     _favArticleController.onLoadMore();
                   }
                   final item = response[index];

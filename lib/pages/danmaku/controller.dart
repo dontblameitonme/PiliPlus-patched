@@ -1,5 +1,6 @@
 import 'dart:collection';
 import 'dart:io' show File;
+import 'dart:typed_data' show Uint8List;
 
 import 'package:PiliPlus/grpc/bilibili/community/service/dm/v1.pb.dart';
 import 'package:PiliPlus/grpc/dm.dart';
@@ -10,6 +11,7 @@ import 'package:PiliPlus/utils/accounts.dart';
 import 'package:PiliPlus/utils/danmaku_utils.dart';
 import 'package:PiliPlus/utils/path_utils.dart';
 import 'package:PiliPlus/utils/utils.dart';
+import 'package:flutter/foundation.dart' show compute;
 import 'package:path/path.dart' as path;
 
 class PlDanmakuController {
@@ -30,7 +32,10 @@ class PlDanmakuController {
   // 已请求的段落标记
   late final Set<int> _requestedSeg = HashSet();
 
+  bool _disposed = false;
+
   void dispose() {
+    _disposed = true;
     _dmSegMap.clear();
     _requestedSeg.clear();
   }
@@ -58,9 +63,16 @@ class PlDanmakuController {
     }
   }
 
+  /// 弹幕合并的时间窗口：仅合并 5 秒内出现的同文弹幕
+  static const int _mergeWindowMs = 5000;
+
   void handleDanmaku(List<DanmakuElem> elems) {
     if (elems.isEmpty) return;
     final uniques = HashMap<String, DanmakuElem>();
+    if (_mergeDanmaku) {
+      // 按时间排序，保证合并窗口以最早出现的那条为基准
+      elems = elems.toList()..sort((a, b) => a.progress.compareTo(b.progress));
+    }
 
     final filters = _plPlayerController.filters;
     final shouldFilter = filters.count != 0;
@@ -72,12 +84,12 @@ class PlDanmakuController {
       if (!element.isSelf) {
         if (_mergeDanmaku) {
           final elem = uniques[element.content];
-          if (elem == null) {
-            uniques[element.content] = element..count = 1;
-          } else {
+          if (elem != null &&
+              element.progress - elem.progress <= _mergeWindowMs) {
             elem.count++;
             continue;
           }
+          uniques[element.content] = element..count = 1;
         }
 
         if (shouldFilter && filters.remove(element)) {
@@ -105,6 +117,9 @@ class PlDanmakuController {
 
   bool _fileDmLoaded = false;
 
+  static List<DanmakuElem> _parseDmElems(Uint8List bytes) =>
+      DmSegMobileReply.fromBuffer(bytes).elems;
+
   void initFileDmIfNeeded() {
     if (_fileDmLoaded) return;
     _fileDmLoaded = true;
@@ -122,8 +137,10 @@ class PlDanmakuController {
       );
       if (!file.existsSync()) return;
       final bytes = await file.readAsBytes();
-      if (bytes.isEmpty) return;
-      final elem = DmSegMobileReply.fromBuffer(bytes).elems;
+      if (bytes.isEmpty || _disposed) return;
+      // PERF-09: parse the whole offline danmaku file off the UI isolate.
+      final elem = await compute(_parseDmElems, bytes);
+      if (_disposed) return;
       handleDanmaku(elem);
     } catch (e, s) {
       Utils.reportError(e, s);

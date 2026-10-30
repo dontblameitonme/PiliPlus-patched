@@ -165,9 +165,13 @@ class MiniScaffoldState extends State<MiniScaffold>
 
   @override
   Widget build(BuildContext context) {
+    final bottomSheet = _currentBottomSheet?.widget;
     return BottomSheetLayout(
-      body: widget.body,
-      bottomSheet: _currentBottomSheet?.widget,
+      // 隔离主页面与弹出面板的绘制，避免面板动画时重绘底层整个页面
+      body: RepaintBoundary(child: widget.body),
+      bottomSheet: bottomSheet != null
+          ? RepaintBoundary(child: bottomSheet)
+          : null,
     );
   }
 }
@@ -208,16 +212,20 @@ class _StandardBottomSheetState
       dragHeight: widget.dragHeight,
     );
     if (widget.enableDrag) {
-      return AnimatedBuilder(
-        animation: widget.animationController,
-        builder: (context, child) => Align(
-          alignment: AlignmentDirectional.topStart,
-          heightFactor: animationCurve.transform(
-            widget.animationController.value,
+      // 使用 ClipRect + FractionalTranslation 走合成层位移动画，替代
+      // Align(heightFactor) 每帧触发的布局
+      return ClipRect(
+        child: AnimatedBuilder(
+          animation: widget.animationController,
+          builder: (context, child) => FractionalTranslation(
+            translation: Offset(
+              0.0,
+              1.0 - animationCurve.transform(widget.animationController.value),
+            ),
+            child: child,
           ),
-          child: child,
+          child: RepaintBoundary(child: child),
         ),
-        child: child,
       );
     }
     return AnimatedBuilder(

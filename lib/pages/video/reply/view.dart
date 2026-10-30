@@ -16,6 +16,7 @@ import 'package:PiliPlus/pages/video/reply/widgets/reply_item_grpc.dart';
 import 'package:PiliPlus/utils/feed_back.dart';
 import 'package:get/get.dart';
 import 'package:material_ui/material_ui.dart';
+import 'package:super_sliver_list/super_sliver_list.dart';
 
 class VideoReplyPanel extends StatefulWidget {
   const VideoReplyPanel({
@@ -162,7 +163,7 @@ class _VideoReplyPanelState extends State<VideoReplyPanel>
           if (hasVote) {
             count++;
           }
-          return SliverList.builder(
+          return SuperSliverList.builder(
             itemBuilder: (context, index) {
               if (hasVote) {
                 if (index == 0) {

@@ -46,10 +46,17 @@ class WhisperDetailPage extends CommonRichTextPubPage {
 
 class _WhisperDetailPageState
     extends CommonRichTextPubPageState<WhisperDetailPage> {
-  final _whisperDetailController = Get.put(
+  final _tag = Utils.makeHeroTag(Get.parameters['talkerId']);
+  late final _whisperDetailController = Get.put(
     WhisperDetailController(),
-    tag: Utils.makeHeroTag(Get.parameters['talkerId']),
+    tag: _tag,
   );
+
+  @override
+  void dispose() {
+    Get.delete<WhisperDetailController>(tag: _tag);
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -163,7 +170,7 @@ class _WhisperDetailPageState
                 physics: platformAlwaysClampingPhysics,
                 controller: _whisperDetailController.scrollController,
                 itemBuilder: (context, int index) {
-                  if (index == response.length - 1) {
+                  if (index >= response.length - 4) {
                     _whisperDetailController.onLoadMore();
                   }
                   final item = response[index];

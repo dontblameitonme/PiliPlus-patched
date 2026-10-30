@@ -40,6 +40,12 @@ class _SearchPageState extends State<SearchPage> {
   }
 
   @override
+  void dispose() {
+    Get.delete<SSearchController>(tag: _tag);
+    super.dispose();
+  }
+
+  @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     theme = Theme.of(context);

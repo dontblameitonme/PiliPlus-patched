@@ -440,15 +440,44 @@ class _VideoDetailPageVState extends State<VideoDetailPageV>
     plPlayerController
       ?..addStatusLister(playerListener)
       ..addPositionListener(positionListener);
-    if (videoDetailController.autoPlay) {
-      videoDetailController.playerInit(
-        autoplay: videoDetailController.playerStatus?.isPlaying ?? false,
-      );
-    } else if (videoDetailController.plPlayerController.preInitPlayer &&
-        !videoDetailController.isQuerying &&
-        videoDetailController.videoUrl != null) {
-      videoDetailController.playerInit();
+    // PERF-03: defer player re-init until the covering route has finished
+    // popping, so decoding/network work does not compete with the transition.
+    final bool autoplay =
+        videoDetailController.playerStatus?.isPlaying ?? false;
+    _runAfterRouteTransition(() {
+      if (!mounted) return;
+      if (videoDetailController.autoPlay) {
+        videoDetailController.playerInit(autoplay: autoplay);
+      } else if (videoDetailController.plPlayerController.preInitPlayer &&
+          !videoDetailController.isQuerying &&
+          videoDetailController.videoUrl != null) {
+        videoDetailController.playerInit();
+      }
+    });
+  }
+
+  void _runAfterRouteTransition(VoidCallback callback) {
+    final Animation<double>? animation = ModalRoute.of(
+      context,
+    )?.secondaryAnimation;
+    if (animation == null || animation.status == AnimationStatus.dismissed) {
+      callback();
+      return;
     }
+    late final AnimationStatusListener listener;
+    listener = (AnimationStatus status) {
+      if (status == AnimationStatus.dismissed) {
+        animation.removeStatusListener(listener);
+        callback();
+      } else if (status == AnimationStatus.forward ||
+          status == AnimationStatus.completed) {
+        // another route was pushed on top again; run immediately to keep the
+        // original behavior instead of dropping the init.
+        animation.removeStatusListener(listener);
+        callback();
+      }
+    };
+    animation.addStatusListener(listener);
   }
 
   @override
@@ -1305,14 +1334,17 @@ class _VideoDetailPageVState extends State<VideoDetailPageV>
       if (_shouldShowSeasonPanel) '播放列表',
     ];
     if (videoDetailController.tabCtr.length != tabs.length) {
-      videoDetailController.tabCtr.dispose();
+      final oldTabCtr = videoDetailController.tabCtr;
       videoDetailController.tabCtr = TabController(
         vsync: videoDetailController,
         length: tabs.length,
         initialIndex: tabs.isEmpty
             ? 0
-            : videoDetailController.tabCtr.index.clamp(0, tabs.length - 1),
+            : oldTabCtr.index.clamp(0, tabs.length - 1),
       );
+      // BUG-07: the old controller may still be attached to widgets built in
+      // this frame, dispose it after the frame instead of during build.
+      WidgetsBinding.instance.addPostFrameCallback((_) => oldTabCtr.dispose());
     }
 
     Widget tabBar() {

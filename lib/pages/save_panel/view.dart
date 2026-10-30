@@ -126,11 +126,11 @@ class _SavePanelState extends State<SavePanel> {
           final pgcItem = ctr.pgcItem;
           final cid = ctr.cid.value;
           final episode = ctr.findEpisode(cid);
-          cover = episode.cover;
+          cover = episode?.cover ?? pgcItem.cover;
           title =
-              episode.shareCopy ??
-              '${pgcItem.title} ${episode.showTitle ?? episode.longTitle ?? ''}';
-          pubdate = episode.pubTime;
+              episode?.shareCopy ??
+              '${pgcItem.title} ${episode?.showTitle ?? episode?.longTitle ?? ''}';
+          pubdate = episode?.pubTime;
           uname = pgcItem.upInfo?.uname;
 
           uri = _reply2Uri(

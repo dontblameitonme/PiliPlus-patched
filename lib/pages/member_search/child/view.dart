@@ -74,7 +74,7 @@ class _MemberSearchChildPageState extends State<MemberSearchChildPage>
                 MemberSearchType.archive => SliverGrid.builder(
                   gridDelegate: gridDelegate,
                   itemBuilder: (context, index) {
-                    if (index == response.length - 1) {
+                    if (index >= response.length - 4) {
                       _controller.onLoadMore();
                     }
                     return SearchArchiveGrpc(item: response[index]);
@@ -106,7 +106,7 @@ class _MemberSearchChildPageState extends State<MemberSearchChildPage>
   }
 
   Widget _itemBuilder(List list, int index) {
-    if (index == list.length - 1) {
+    if (index >= list.length - 4) {
       _controller.onLoadMore();
     }
     return DynamicPanel(item: list[index]);

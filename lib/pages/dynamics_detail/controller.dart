@@ -22,9 +22,9 @@ class DynamicDetailController extends CommonDynController
   DynamicDetailController({super.count});
 
   @override
-  late int oid;
+  int oid = 0;
   @override
-  late int replyType;
+  int replyType = 0;
   late DynamicItemModel dynItem;
   @override
   MentionItem? get mentionItem => dynItem.modules.moduleAuthor?.mentionItem;
@@ -52,6 +52,13 @@ class DynamicDetailController extends CommonDynController
         }
       });
     }
+  }
+
+  @override
+  Future<void> queryData([bool isRefresh = true]) {
+    // 评论 oid 尚未解析完成时不发起请求
+    if (oid == 0) return Future.syncValue(null);
+    return super.queryData(isRefresh);
   }
 
   void _init(String commentIdStr, int commentType) {

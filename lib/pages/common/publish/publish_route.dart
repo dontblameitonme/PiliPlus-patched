@@ -13,8 +13,8 @@ class PublishRoute<T> extends PopupRoute<T> {
   }) : transitionDuration =
            transitionDuration ??
            (PlatformUtils.isDesktop
-               ? const Duration(milliseconds: 400)
-               : const Duration(milliseconds: 500));
+               ? const Duration(milliseconds: 300)
+               : const Duration(milliseconds: 320));
 
   final RoutePageBuilder pageBuilder;
 
@@ -56,12 +56,17 @@ class PublishRoute<T> extends PopupRoute<T> {
       return _transitionBuilder(context, animation, secondaryAnimation, child);
     }
     return SlideTransition(
-      position: animation.drive(
-        Tween<Offset>(
-          begin: const Offset(0.0, 1.0),
-          end: Offset.zero,
-        ),
-      ),
+      position:
+          Tween<Offset>(
+            begin: const Offset(0.0, 1.0),
+            end: Offset.zero,
+          ).animate(
+            CurvedAnimation(
+              parent: animation,
+              curve: Curves.easeOutCubic,
+              reverseCurve: Curves.easeInCubic,
+            ),
+          ),
       child: child,
     );
   }

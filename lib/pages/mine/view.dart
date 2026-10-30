@@ -529,7 +529,7 @@ class _MediaPageState extends CommonPageState<MinePage>
             physics: const AlwaysScrollableScrollPhysics(),
             padding: const .only(left: 20, top: 10, right: 20),
             itemBuilder: (context, index) {
-              if (index == response.length - 1) {
+              if (index >= response.length - 4) {
                 tabCtr.onLoadMore();
               }
               return SizedBox(width: 180, child: itemBuilder(response[index]));

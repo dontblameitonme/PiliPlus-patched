@@ -70,7 +70,7 @@ class _RcmdPageState extends State<RcmdPage>
             ? SliverGrid.builder(
                 gridDelegate: gridDelegate,
                 itemBuilder: (context, index) {
-                  if (index == response.length - 1) {
+                  if (index >= response.length - 4) {
                     controller.onLoadMore();
                   }
                   if (controller.lastRefreshAt != null) {

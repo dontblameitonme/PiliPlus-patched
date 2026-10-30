@@ -95,6 +95,13 @@ class _MainAppState extends PopScopeState<MainApp>
   }
 
   @override
+  void didHaveMemoryPressure() {
+    // PERF-15: release decoded images when the system is low on memory.
+    PaintingBinding.instance.imageCache.clear();
+    super.didHaveMemoryPressure();
+  }
+
+  @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
       _mainController

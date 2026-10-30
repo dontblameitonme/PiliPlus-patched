@@ -49,19 +49,25 @@ class AppBarAni extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SlideTransition(
-      position: controller.drive(isTop ? _topPos : _bottomPos),
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          gradient: isTop ? _topDecoration : _bottomDecoration,
+    // PERF-13: skip painting the bar while it is fully hidden.
+    return AnimatedBuilder(
+      animation: controller,
+      builder: (context, child) =>
+          Offstage(offstage: controller.isDismissed, child: child),
+      child: SlideTransition(
+        position: controller.drive(isTop ? _topPos : _bottomPos),
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            gradient: isTop ? _topDecoration : _bottomDecoration,
+          ),
+          child: removeSafeArea
+              ? child
+              : ViewSafeArea(
+                  left: isFullScreen,
+                  right: isFullScreen,
+                  child: child,
+                ),
         ),
-        child: removeSafeArea
-            ? child
-            : ViewSafeArea(
-                left: isFullScreen,
-                right: isFullScreen,
-                child: child,
-              ),
       ),
     );
   }

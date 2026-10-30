@@ -90,7 +90,7 @@ class _FavSearchPageState
     return SliverGrid.builder(
       gridDelegate: gridDelegate,
       itemBuilder: (context, index) {
-        if (index == list.length - 1) {
+        if (index >= list.length - 4) {
           controller.onLoadMore();
         }
         final item = list[index];

@@ -249,7 +249,7 @@ class _BlackListPageState extends State<BlackListPage>
             ? SliverList.builder(
                 itemCount: response.length,
                 itemBuilder: (BuildContext context, int index) {
-                  if (index == response.length - 1) {
+                  if (index >= response.length - 4) {
                     _blackListController.onLoadMore();
                   }
                   final item = response[index];

@@ -42,6 +42,8 @@ class MouseInteractiveViewer extends StatefulWidget {
     required this.childKey,
     required this.child,
     required this.scaleGestureRecognizer,
+    this.onExternalScale,
+    this.externalScale,
   }) : assert(minScale > 0),
        assert(interactionEndFrictionCoefficient > 0),
        assert(maxScale > 0),
@@ -73,6 +75,14 @@ class MouseInteractiveViewer extends StatefulWidget {
   final TransformationController transformationController;
   final GlobalKey childKey;
   final ScaleGestureRecognizer scaleGestureRecognizer;
+
+  /// 非空时，多指缩放（以及桌面端滚轮/触控板缩放）不再变换 [child]，
+  /// 而是将期望的总缩放倍数回调给外部处理（例如定框消黑边模式下仅在画框内缩放），
+  /// 同时屏蔽所有平移偏移与惯性动画。
+  final ValueChanged<double>? onExternalScale;
+
+  /// 外部缩放模式下，手势开始时的当前缩放倍数。
+  final ValueGetter<double>? externalScale;
 
   static const double _kDrag = 0.0000135;
 
@@ -280,11 +290,23 @@ class _MouseInteractiveViewerState extends State<MouseInteractiveViewer>
 
   bool _isSinglePointer = false;
 
+  double _externalScaleStart = 1.0;
+
+  bool get _useExternalScale => widget.onExternalScale != null;
+
+  double get _currentExternalScale => widget.externalScale?.call() ?? 1.0;
+
   // Handle the start of a gesture. All of pan, scale, and rotate are handled
   // with GestureDetector's scale gesture.
   void _onScaleStart(ScaleStartDetails details) {
     if (_isSinglePointer = details.pointerCount == 1) {
       widget.onPanStart(details);
+      return;
+    }
+
+    if (_useExternalScale) {
+      _gestureType = null;
+      _externalScaleStart = _currentExternalScale;
       return;
     }
 
@@ -315,6 +337,16 @@ class _MouseInteractiveViewerState extends State<MouseInteractiveViewer>
   void _onScaleUpdate(ScaleUpdateDetails details) {
     if (_isSinglePointer) {
       widget.onPanUpdate(details);
+      return;
+    }
+
+    if (_useExternalScale) {
+      // 严格居中缩放：忽略焦点偏移与平移
+      if (!widget.scaleEnabled || details.scale == 1.0) {
+        return;
+      }
+      _gestureType = _GestureType.scale;
+      widget.onExternalScale!(_externalScaleStart * details.scale);
       return;
     }
 
@@ -412,6 +444,11 @@ class _MouseInteractiveViewerState extends State<MouseInteractiveViewer>
       return;
     }
 
+    if (_useExternalScale) {
+      _gestureType = null;
+      return;
+    }
+
     _scaleStart = null;
     _rotationStart = null;
     _referenceFocalPoint = null;
@@ -506,6 +543,7 @@ class _MouseInteractiveViewerState extends State<MouseInteractiveViewer>
     final double scaleChange;
     if (event is PointerScrollEvent) {
       if (event.kind == PointerDeviceKind.trackpad) {
+        if (_useExternalScale) return;
         final Offset localDelta = PointerEvent.transformDeltaViaPositions(
           untransformedEndPosition: global + event.scrollDelta,
           untransformedDelta: event.scrollDelta,
@@ -533,6 +571,11 @@ class _MouseInteractiveViewerState extends State<MouseInteractiveViewer>
     }
 
     if (!_gestureIsSupported(_GestureType.scale)) {
+      return;
+    }
+
+    if (_useExternalScale) {
+      widget.onExternalScale!(_currentExternalScale * scaleChange);
       return;
     }
 
@@ -573,6 +616,10 @@ class _MouseInteractiveViewerState extends State<MouseInteractiveViewer>
     final double scaleChange = math.exp(
       -event.scrollDelta.dy / widget.scaleFactor,
     );
+    if (_useExternalScale) {
+      widget.onExternalScale!(_currentExternalScale * scaleChange);
+      return;
+    }
     final Offset focalPointScene = _transformer.toScene(local);
     _transformer.value = _matrixScale(_transformer.value, scaleChange);
 
@@ -589,7 +636,7 @@ class _MouseInteractiveViewerState extends State<MouseInteractiveViewer>
     Offset global,
     bool flip,
   ) {
-    if (_transformer.value[0] == 1.0) return;
+    if (_useExternalScale || _transformer.value[0] == 1.0) return;
     final Offset translation = flip
         ? event.scrollDelta.flip
         : event.scrollDelta;
@@ -834,8 +881,8 @@ Offset _exceedsBy(Quad boundary, Quad viewport) {
 
 Offset _round(Offset offset) {
   return Offset(
-    double.parse(offset.dx.toStringAsFixed(9)),
-    double.parse(offset.dy.toStringAsFixed(9)),
+    (offset.dx * 1e9).roundToDouble() / 1e9,
+    (offset.dy * 1e9).roundToDouble() / 1e9,
   );
 }
 

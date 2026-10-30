@@ -58,6 +58,21 @@ class ArticleController extends CommonDynController
       .map((e) => SourceModel(url: e.pic!.pics!.first.url!))
       .toList();
 
+  /// 跳转 opus 后额外注册的 Tag，需在销毁时一并清理，避免泄漏
+  String? _aliasTag;
+
+  @override
+  void onClose() {
+    final aliasTag = _aliasTag;
+    _aliasTag = null;
+    if (aliasTag != null &&
+        Get.isRegistered<ArticleController>(tag: aliasTag) &&
+        identical(Get.find<ArticleController>(tag: aliasTag), this)) {
+      Get.delete<ArticleController>(tag: aliasTag);
+    }
+    super.onClose();
+  }
+
   @override
   void onInit() {
     super.onInit();
@@ -76,7 +91,11 @@ class ArticleController extends CommonDynController
             id = opusId;
             type = 'opus';
           }
-          Get.putOrFind(() => this, tag: type + id);
+          final aliasTag = type + id;
+          if (!Get.isRegistered<ArticleController>(tag: aliasTag)) {
+            _aliasTag = aliasTag;
+          }
+          Get.putOrFind(() => this, tag: aliasTag);
         }
         init();
       });

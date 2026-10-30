@@ -7,6 +7,9 @@ abstract class CommonListController<R, T> extends CommonController<R, T> {
   bool isEnd = false;
   bool get hasFooter => false;
 
+  /// 加载下一页失败（如网络波动、风控 -412），用于在列表底部展示「点击重试」
+  bool loadMoreFailed = false;
+
   @override
   Rx<LoadingState<List<T>?>> loadingState =
       LoadingState<List<T>?>.loading().obs;
@@ -25,6 +28,7 @@ abstract class CommonListController<R, T> extends CommonController<R, T> {
     isLoading = true;
     final LoadingState<R> res = await customGetData();
     if (res case Success(:final response)) {
+      loadMoreFailed = false;
       if (!customHandleResponse(isRefresh, res)) {
         final dataList = getDataList(response);
         if (dataList == null || dataList.isEmpty) {
@@ -49,8 +53,15 @@ abstract class CommonListController<R, T> extends CommonController<R, T> {
       }
       page++;
     } else {
-      if (isRefresh && !handleError(res is Error ? res.errMsg : null)) {
-        loadingState.value = res as Error;
+      if (isRefresh) {
+        if (!handleError(res is Error ? res.errMsg : null)) {
+          loadingState.value = res as Error;
+        }
+      } else {
+        // 加载更多失败：标记失败态并刷新列表，使底部不再永久停留在「加载中」
+        loadMoreFailed = true;
+        handleError(res is Error ? res.errMsg : null);
+        if (hasFooter) loadingState.refresh();
       }
     }
     isLoading = false;
@@ -60,6 +71,7 @@ abstract class CommonListController<R, T> extends CommonController<R, T> {
   Future<void> onRefresh() {
     page = 1;
     isEnd = false;
+    loadMoreFailed = false;
     return super.onRefresh();
   }
 

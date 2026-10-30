@@ -916,6 +916,27 @@ abstract final class Pref {
   static int get cacheVideoFit =>
       _video.get(VideoBoxKey.cacheVideoFit, defaultValue: 1);
 
+  static double get customAspectRatioValue {
+    final value = _video.get(VideoBoxKey.customAspectRatioValue);
+    if (value is num && value.isFinite && value >= 0.5 && value <= 3.5) {
+      return value.toDouble();
+    }
+    return 16 / 9;
+  }
+
+  static String get customAspectRatioLabel {
+    final value = _video.get(VideoBoxKey.customAspectRatioLabel);
+    return value is String && value.isNotEmpty ? value : '16:9';
+  }
+
+  static double get customAspectZoomScale {
+    final value = _video.get(VideoBoxKey.customAspectZoomScale);
+    if (value is num && value.isFinite) {
+      return value.toDouble().clamp(1.0, 3.0);
+    }
+    return 1.0;
+  }
+
   static bool get continuePlayInBackground =>
       _setting.get(SettingBoxKey.continuePlayInBackground, defaultValue: false);
 

@@ -94,7 +94,7 @@ class _DynamicsTabPageState extends State<DynamicsTabPage>
   }
 
   Widget _itemBuilder(List<DynamicItemModel> list, int index) {
-    if (index == list.length - 1) {
+    if (index >= list.length - 4) {
       controller.onLoadMore();
     }
     final item = list[index];

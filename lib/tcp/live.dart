@@ -48,7 +48,7 @@ class PackageHeaderRes extends PackageHeader {
   final int headerSize;
 
   static PackageHeaderRes? fromBytesData(Uint8List data) {
-    if (data.length < 10) {
+    if (data.length < 16) {
       logger.w('数据不足以解析PackageHeader');
       return null;
     }
@@ -214,28 +214,34 @@ class LiveMessageStream {
 
   @pragma('vm:notify-debugger-on-exception')
   void _processingData(Uint8List data) {
-    try {
-      final subHeader = PackageHeaderRes.fromBytesData(data);
-      if (subHeader != null) {
-        if (_eventListeners.isNotEmpty) {
+    // 使用带边界校验的循环替代无边界递归，避免畸形数据导致越界或栈溢出
+    Uint8List cursor = data;
+    while (cursor.length >= 16) {
+      final subHeader = PackageHeaderRes.fromBytesData(cursor);
+      if (subHeader == null ||
+          subHeader.headerSize < 16 ||
+          subHeader.totalSize < subHeader.headerSize ||
+          subHeader.totalSize > cursor.length) {
+        break;
+      }
+      if (_eventListeners.isNotEmpty) {
+        try {
           final msgBody = jsonDecode(
             utf8.decode(
               Uint8List.sublistView(
-                data,
+                cursor,
                 subHeader.headerSize,
                 subHeader.totalSize,
               ),
             ),
           );
-          for (final f in _eventListeners) {
+          for (final f in _eventListeners.toList()) {
             f(msgBody);
           }
-        }
-        if (subHeader.totalSize < data.length) {
-          _processingData(Uint8List.sublistView(data, subHeader.totalSize));
-        }
+        } catch (_) {}
       }
-    } catch (_) {}
+      cursor = Uint8List.sublistView(cursor, subHeader.totalSize);
+    }
   }
 
   Future<void> _heartBeat() async {

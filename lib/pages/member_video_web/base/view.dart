@@ -97,7 +97,7 @@ abstract class BaseVideoWebState<
                     gridDelegate: gridDelegate,
                     itemCount: response.length,
                     itemBuilder: (context, index) {
-                      if (index == response.length - 1) {
+                      if (index >= response.length - 4) {
                         controller.onLoadMore();
                       }
                       // TODO: dimension

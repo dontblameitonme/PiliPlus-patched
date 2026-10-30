@@ -78,33 +78,32 @@ class _LocalIntroPanelState extends State<LocalIntroPanel>
                   Stack(
                     clipBehavior: Clip.none,
                     children: [
-                      cover.existsSync()
-                          ? ClipRRect(
-                              borderRadius: Style.mdRadius,
-                              child: Image.file(
-                                cover,
-                                width: 160,
-                                height: 100,
-                                fit: BoxFit.cover,
-                                cacheWidth: cacheWidth
-                                    ? 160.cacheSize(context)
-                                    : null,
-                                cacheHeight: cacheWidth
-                                    ? null
-                                    : 100.cacheSize(context),
-                                colorBlendMode: NetworkImgLayer.reduce
-                                    ? BlendMode.modulate
-                                    : null,
-                                color: NetworkImgLayer.reduce
-                                    ? NetworkImgLayer.reduceLuxColor
-                                    : null,
-                              ),
-                            )
-                          : NetworkImgLayer(
-                              src: entry.cover,
-                              width: 160,
-                              height: 100,
-                            ),
+                      ClipRRect(
+                        borderRadius: Style.mdRadius,
+                        child: Image.file(
+                          cover,
+                          width: 160,
+                          height: 100,
+                          fit: BoxFit.cover,
+                          cacheWidth: cacheWidth
+                              ? 160.cacheSize(context)
+                              : null,
+                          cacheHeight: cacheWidth
+                              ? null
+                              : 100.cacheSize(context),
+                          colorBlendMode: NetworkImgLayer.reduce
+                              ? BlendMode.modulate
+                              : null,
+                          color: NetworkImgLayer.reduce
+                              ? NetworkImgLayer.reduceLuxColor
+                              : null,
+                          errorBuilder: (_, _, _) => NetworkImgLayer(
+                            src: entry.cover,
+                            width: 160,
+                            height: 100,
+                          ),
+                        ),
+                      ),
                       PBadge(
                         text: DurationUtils.formatDuration(
                           entry.totalTimeMilli ~/ 1000,

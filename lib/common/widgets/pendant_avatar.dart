@@ -55,7 +55,7 @@ class PendantAvatar extends StatelessWidget {
     final size = showPendant ? preferredSize - pendentOffset : preferredSize;
     Widget? pendant;
     if (showPendant) {
-      final pendantSize = size * 1.75;
+      final pendantSize = (size * 1.75).roundToDouble();
       pendant = Positioned(
         // -(size * 1.75 - size) / 2
         top: -0.375 * size + pendentOffset / 2,

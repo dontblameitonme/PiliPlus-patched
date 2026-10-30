@@ -41,7 +41,7 @@ class _FollowSearchPageState
     return SliverList.builder(
       itemCount: list.length,
       itemBuilder: ((context, index) {
-        if (index == list.length - 1) {
+        if (index >= list.length - 4) {
           controller.onLoadMore();
         }
         return FollowItem(

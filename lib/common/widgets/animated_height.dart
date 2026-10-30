@@ -193,7 +193,8 @@ class RenderAnimatedHeight extends RenderProxyBox {
     this._curve = Curves.linear,
     this._clipBehavior = .hardEdge,
     required this._expand,
-  }) {
+  }) : _forwardDuration = duration,
+       _reverseDuration = reverseDuration {
     _controller =
         AnimationController(
           vsync: vsync,
@@ -213,8 +214,17 @@ class RenderAnimatedHeight extends RenderProxyBox {
     if (_expand == value) return;
     _expand = value;
     _lastValue = 0.0;
-    _controller.forward(from: 0);
+    // BUG-18: the controller always runs forward, so pick the duration that
+    // matches the expand/collapse direction manually.
+    _controller
+      ..duration = value
+          ? _forwardDuration
+          : (_reverseDuration ?? _forwardDuration)
+      ..forward(from: 0);
   }
+
+  Duration _forwardDuration;
+  Duration? _reverseDuration;
 
   late final AnimationController _controller;
   bool get isAnimating => _controller.isAnimating;
@@ -222,20 +232,27 @@ class RenderAnimatedHeight extends RenderProxyBox {
   double? _lastValue;
   Heights? _heights;
 
-  Duration get duration => _controller.duration!;
+  Duration get duration => _forwardDuration;
   set duration(Duration value) {
-    if (value == _controller.duration) {
+    if (value == _forwardDuration) {
       return;
     }
-    _controller.duration = value;
+    _forwardDuration = value;
+    if (_expand || _reverseDuration == null) {
+      _controller.duration = value;
+    }
   }
 
-  Duration? get reverseDuration => _controller.reverseDuration;
+  Duration? get reverseDuration => _reverseDuration;
   set reverseDuration(Duration? value) {
-    if (value == _controller.reverseDuration) {
+    if (value == _reverseDuration) {
       return;
     }
+    _reverseDuration = value;
     _controller.reverseDuration = value;
+    if (!_expand) {
+      _controller.duration = value ?? _forwardDuration;
+    }
   }
 
   Curve _curve;

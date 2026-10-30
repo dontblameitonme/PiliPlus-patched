@@ -107,7 +107,7 @@ class _PgcReviewChildPageState extends State<PgcReviewChildPage>
           );
           return SliverList.separated(
             itemBuilder: (context, index) {
-              if (index == response.length - 1) {
+              if (index >= response.length - 4) {
                 _controller.onLoadMore();
               }
               return _itemWidget(theme, index, response[index]);

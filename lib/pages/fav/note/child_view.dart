@@ -142,7 +142,7 @@ class _FavNoteChildPageState extends State<FavNoteChildPage>
             ? SliverGrid.builder(
                 gridDelegate: gridDelegate,
                 itemBuilder: (context, index) {
-                  if (index == response.length - 1) {
+                  if (index >= response.length - 4) {
                     _favNoteController.onLoadMore();
                   }
                   final item = response[index];

@@ -94,7 +94,7 @@ class _SearchArticlePanelState
     return SliverGrid.builder(
       gridDelegate: gridDelegate,
       itemBuilder: (context, index) {
-        if (index == list.length - 1) {
+        if (index >= list.length - 4) {
           controller.onLoadMore();
         }
         return SearchArticleItem(item: list[index]);

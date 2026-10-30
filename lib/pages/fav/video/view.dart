@@ -54,7 +54,7 @@ class _FavVideoPageState extends State<FavVideoPage>
             ? SliverGrid.builder(
                 gridDelegate: gridDelegate,
                 itemBuilder: (BuildContext context, int index) {
-                  if (index == response.length - 1) {
+                  if (index >= response.length - 4) {
                     _favController.onLoadMore();
                   }
                   final item = response[index];

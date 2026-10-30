@@ -382,7 +382,7 @@ class _DynTopicPageState extends State<DynTopicPage>
   }
 
   Widget _itemBuilder(List<TopicCardItem> list, int index) {
-    if (index == list.length - 1) {
+    if (index >= list.length - 4) {
       _controller.onLoadMore();
     }
 

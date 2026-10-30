@@ -32,6 +32,7 @@ import 'package:PiliPlus/utils/share_utils.dart';
 import 'package:PiliPlus/utils/utils.dart';
 import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
+import 'package:collection/collection.dart';
 import 'package:get/get.dart';
 import 'package:material_ui/material_ui.dart';
 
@@ -87,7 +88,8 @@ class PgcIntroController extends CommonIntroController {
 
     super.onInit();
 
-    seasonIndex = pgcItem.seasons!.indexWhere((e) => e.seasonId == seasonId);
+    seasonIndex =
+        pgcItem.seasons?.indexWhere((e) => e.seasonId == seasonId) ?? -1;
     _updateEpisodeIndex(cid.value);
 
     _onGetPgcInfo();
@@ -177,7 +179,7 @@ class PgcIntroController extends CommonIntroController {
                 final item = findEpisode(cid.value);
                 Get.back();
                 ShareUtils.shareText(
-                  '${pgcItem.title} ${item.showTitle}'
+                  '${pgcItem.title} ${item?.showTitle ?? ''}'
                   ' - $videoUrl',
                 );
               },
@@ -212,7 +214,7 @@ class PgcIntroController extends CommonIntroController {
                       _ => -1,
                     },
                     pic: pgcItem.cover,
-                    title: '${pgcItem.title}\n${item.showTitle}',
+                    title: '${pgcItem.title}\n${item?.showTitle ?? ''}',
                     uname: '',
                     replyInfo: (
                       oid: videoDetailCtr.aid,
@@ -231,7 +233,7 @@ class PgcIntroController extends CommonIntroController {
               onPressed: () {
                 Get.back();
                 try {
-                  final item = findEpisode(cid.value);
+                  final item = findEpisode(cid.value)!;
                   final title =
                       item.shareCopy ??
                       '${pgcItem.title} ${item.showTitle ?? item.longTitle}';
@@ -368,6 +370,7 @@ class PgcIntroController extends CommonIntroController {
   @override
   bool prevPlay() {
     final episodes = this.episodes;
+    if (episodes.isEmpty) return false;
     int currentIndex = episodes.indexWhere(
       (e) => e.cid == videoDetailCtr.cid.value,
     );
@@ -485,18 +488,27 @@ class PgcIntroController extends CommonIntroController {
 
   List<EpisodeItem> get episodes {
     if (episodeType == .section) {
-      return pgcItem.sections![sectionIndex].episodes!;
+      final sections = pgcItem.sections;
+      if (sections != null &&
+          sectionIndex >= 0 &&
+          sectionIndex < sections.length) {
+        return sections[sectionIndex].episodes ?? const <EpisodeItem>[];
+      }
+      return const <EpisodeItem>[];
     }
-    return pgcItem.episodes!;
+    return pgcItem.episodes ?? const <EpisodeItem>[];
   }
 
-  EpisodeItem findEpisode(int cid) {
-    return episodes.firstWhere((e) => e.cid == cid);
+  EpisodeItem? findEpisode(int cid) {
+    final episodes = this.episodes;
+    return episodes.firstWhereOrNull((e) => e.cid == cid) ??
+        episodes.firstOrNull;
   }
 
   @override
   void queryVideoIntro([EpisodeItem? episode]) {
     episode ??= findEpisode(cid.value);
+    if (episode == null) return;
     videoDetail
       ..value.title = episode.showTitle
       ..refresh();

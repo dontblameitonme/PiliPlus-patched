@@ -92,8 +92,48 @@ class ReplyItemGrpc extends StatelessWidget {
   final ValueChanged<ReplyInfo>? onToggleTop;
   final VoidCallback? jumpToDialogue;
 
+  /// 以 replyItem 为 Key 记录翻译请求中状态，避免 rebuild 后防重失效
+  static final Expando<bool> _translating = Expando<bool>('replyTranslating');
   static final _voteRegExp = RegExp(r"^\{vote:\d+?\}$");
   static final _timeRegExp = RegExp(r'^(?:\d+[:：])?\d+[:：]\d+$');
+  static final _avBvRegExp = RegExp(r'^(av|bv)', caseSensitive: false);
+  static final _cvRegExp = RegExp(
+    r'^cv(\d+)$|/read/cv(\d+)|note-app/view\?cvid=(\d+)',
+    caseSensitive: false,
+  );
+
+  /// 以 [Content] 对象为 Key 缓存编译好的分词正则，避免每次 build 重新编译
+  static final Expando<RegExp> _patternCache = Expando<RegExp>(
+    'replyPatternCache',
+  );
+
+  static RegExp _buildPattern(Content content) {
+    final List<String> specialTokens = [
+      ...content.emotes.keys,
+      ...content.topics.keys.map((e) => '#$e#'),
+      ...content.atNameToMid.keys.map((e) => '@$e'),
+      ...content.urls.keys,
+    ];
+    final String patternStr = [
+      ...specialTokens.map(RegExp.escape),
+      r'(?:\d+[:：])?\d+[:：]\d+',
+      r'\{vote:\d+?\}',
+      Constants.urlRegex.pattern,
+    ].join('|');
+    return RegExp(patternStr);
+  }
+
+  /// 当前评论所属视频页的 heroTag（视频页外为 null）
+  String? _videoTag() {
+    final tag = getTag?.call();
+    if (tag is String) return tag;
+    final args = Get.arguments;
+    if (args is Map && args['heroTag'] is String) {
+      return args['heroTag'] as String;
+    }
+    return null;
+  }
+
   static bool enableWordRe = Pref.enableWordRe;
   static int? replyLengthLimit = Pref.replyLengthLimit;
 
@@ -108,9 +148,10 @@ class ReplyItemGrpc extends StatelessWidget {
       constraints: BoxConstraints(
         maxWidth: min(640, context.mediaQueryShortestSide),
       ),
-      builder: (context) {
+      builder: (sheetContext) {
         return morePanel(
-          context: context,
+          context: sheetContext,
+          outerCtx: context,
           item: replyItem,
           onDelete: () => onDelete?.call(replyItem, null),
           isSubReply: false,
@@ -407,7 +448,6 @@ class ReplyItemGrpc extends StatelessWidget {
     TextStyle textStyle,
     ButtonStyle buttonStyle,
   ) {
-    late bool isProcessing = false;
     final color = replyControl.showTranslation
         ? colorScheme.primary
         : colorScheme.outline.withValues(alpha: 0.8);
@@ -420,7 +460,7 @@ class ReplyItemGrpc extends StatelessWidget {
             replyControl.showTranslation = false;
             (context as Element).markNeedsBuild();
           } else {
-            if (isProcessing) {
+            if (_translating[replyItem] == true) {
               return;
             }
             if (replyItem.hasTranslatedContent()) {
@@ -428,27 +468,30 @@ class ReplyItemGrpc extends StatelessWidget {
               (context as Element).markNeedsBuild();
               return;
             }
-            isProcessing = true;
-            final res = await ReplyGrpc.translateReply(
-              type: replyItem.type,
-              oid: replyItem.oid,
-              rpid: replyItem.id,
-            );
-            if (res case Success(:final response)) {
-              final item = response.translatedReplies[replyItem.id];
-              if (item != null && item.hasTranslatedContent()) {
-                replyControl.showTranslation = true;
-                replyItem.translatedContent = item.translatedContent;
-                if (context.mounted) {
-                  (context as Element).markNeedsBuild();
+            _translating[replyItem] = true;
+            try {
+              final res = await ReplyGrpc.translateReply(
+                type: replyItem.type,
+                oid: replyItem.oid,
+                rpid: replyItem.id,
+              );
+              if (res case Success(:final response)) {
+                final item = response.translatedReplies[replyItem.id];
+                if (item != null && item.hasTranslatedContent()) {
+                  replyControl.showTranslation = true;
+                  replyItem.translatedContent = item.translatedContent;
+                  if (context.mounted) {
+                    (context as Element).markNeedsBuild();
+                  }
+                } else {
+                  SmartDialog.showToast('翻译结果为空');
                 }
-              } else {
-                SmartDialog.showToast('翻译结果为空');
+              } else if (res case Error(:final errMsg)) {
+                SmartDialog.showToast('翻译失败: $errMsg');
               }
-            } else if (res case Error(:final errMsg)) {
-              SmartDialog.showToast('翻译失败: $errMsg');
+            } finally {
+              _translating[replyItem] = null;
             }
-            isProcessing = false;
           }
         },
         child: Row(
@@ -597,9 +640,10 @@ class ReplyItemGrpc extends StatelessWidget {
                   constraints: BoxConstraints(
                     maxWidth: min(640, context.mediaQueryShortestSide),
                   ),
-                  builder: (context) {
+                  builder: (sheetContext) {
                     return morePanel(
-                      context: context,
+                      context: sheetContext,
+                      outerCtx: context,
                       item: childReply,
                       onDelete: () => onDelete?.call(replyItem, index),
                       isSubReply: true,
@@ -714,21 +758,8 @@ class ReplyItemGrpc extends StatelessWidget {
     final List<InlineSpan> spanChildren = <InlineSpan>[];
     bool hasNote = false;
 
-    final urlKeys = content.urls.keys;
-    // 构建正则表达式
-    final List<String> specialTokens = [
-      ...content.emotes.keys,
-      ...content.topics.keys.map((e) => '#$e#'),
-      ...content.atNameToMid.keys.map((e) => '@$e'),
-      ...urlKeys,
-    ];
-    String patternStr = [
-      ...specialTokens.map(RegExp.escape),
-      r'(?:\d+[:：])?\d+[:：]\d+',
-      r'\{vote:\d+?\}',
-      Constants.urlRegex.pattern,
-    ].join('|');
-    final RegExp pattern = RegExp(patternStr);
+    // 构建正则表达式（按 Content 缓存）
+    final RegExp pattern = _patternCache[content] ??= _buildPattern(content);
 
     late List<String> matchedUrls = [];
 
@@ -764,16 +795,10 @@ class ReplyItemGrpc extends StatelessWidget {
           recognizer: NoDeadlineTapGestureRecognizer()
             ..onTap = () {
               if (url.appUrlSchema.isEmpty) {
-                if (RegExp(
-                  r'^(av|bv)',
-                  caseSensitive: false,
-                ).hasMatch(matchStr)) {
+                if (_avBvRegExp.hasMatch(matchStr)) {
                   UrlUtils.matchUrlPush(matchStr, '');
                 } else {
-                  RegExpMatch? match = RegExp(
-                    r'^cv(\d+)$|/read/cv(\d+)|note-app/view\?cvid=(\d+)',
-                    caseSensitive: false,
-                  ).firstMatch(matchStr);
+                  RegExpMatch? match = _cvRegExp.firstMatch(matchStr);
                   String? cvid =
                       match?.group(1) ?? match?.group(2) ?? match?.group(3);
                   if (cvid != null) {
@@ -866,15 +891,17 @@ class ReplyItemGrpc extends StatelessWidget {
         } else if (_timeRegExp.hasMatch(matchStr)) {
           matchStr = matchStr.replaceAll('：', ':');
           bool isValid = false;
-          try {
-            final ctr = Get.find<VideoDetailController>(
-              tag: getTag?.call() ?? Get.arguments['heroTag'],
-            );
-            isValid =
-                DurationUtils.parseDuration(matchStr) * 1000 <=
-                ctr.data.timeLength!;
-          } catch (e) {
-            if (kDebugMode) debugPrint('failed to validate: $e');
+          // 零异常开销：不在 build 中 try-catch Get.find
+          final String? videoTag = _videoTag();
+          if (videoTag != null &&
+              Get.isRegistered<VideoDetailController>(tag: videoTag)) {
+            final timeLength = Get.find<VideoDetailController>(
+              tag: videoTag,
+            ).data.timeLength;
+            if (timeLength != null) {
+              isValid =
+                  DurationUtils.parseDuration(matchStr) * 1000 <= timeLength;
+            }
           }
           spanChildren.add(
             TextSpan(
@@ -887,7 +914,7 @@ class ReplyItemGrpc extends StatelessWidget {
                         try {
                           SmartDialog.showToast('跳转至：$matchStr');
                           Get.find<VideoDetailController>(
-                            tag: Get.arguments['heroTag'],
+                            tag: videoTag,
                           ).plPlayerController.seekTo(
                             Duration(
                               seconds: DurationUtils.parseDuration(matchStr),
@@ -988,11 +1015,14 @@ class ReplyItemGrpc extends StatelessWidget {
 
   Widget morePanel({
     required BuildContext context,
+    // 弹窗关闭后仍然有效的外部 context，用于在 Get.back() 后继续弹出对话框
+    BuildContext? outerCtx,
     required ReplyInfo item,
     required VoidCallback onDelete,
     required bool isSubReply,
   }) {
     late String message = item.content.message;
+    final BuildContext outerContext = outerCtx ?? context;
     final ownerMid = Int64(Accounts.main.mid);
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
@@ -1077,7 +1107,7 @@ class ReplyItemGrpc extends StatelessWidget {
               onTap: () async {
                 Get.back();
                 bool? isDelete = await showDialog<bool>(
-                  context: context,
+                  context: outerContext,
                   builder: (context) {
                     final colorScheme = ColorScheme.of(context);
                     return AlertDialog(
@@ -1163,7 +1193,7 @@ class ReplyItemGrpc extends StatelessWidget {
                 final rpid = item.id;
 
                 autoWrapReportDialog(
-                  context,
+                  outerContext,
                   onRemove: onDelete,
                   mid: () => item.mid.toInt(),
                   ReportOptions.commentReport,
@@ -1215,7 +1245,7 @@ class ReplyItemGrpc extends StatelessWidget {
           ListTile(
             onTap: () {
               Get.back();
-              showReplyCopyDialog(context, message, item.content.emotes);
+              showReplyCopyDialog(outerContext, message, item.content.emotes);
             },
             minLeadingWidth: 0,
             leading: const Icon(Icons.copy_outlined, size: 19),

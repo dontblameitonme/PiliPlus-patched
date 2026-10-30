@@ -104,7 +104,7 @@ class _MemberDynamicsPageState extends State<MemberDynamicsPage>
   }
 
   Widget _itemBuilder(List<DynamicItemModel> list, int index) {
-    if (index == list.length - 1) {
+    if (index >= list.length - 4) {
       _memberDynamicController.onLoadMore();
     }
     return DynamicPanel(

@@ -804,7 +804,7 @@ class PlPlayerController with BlockConfigMixin, AudioNormalizationMixin {
     );
   }
 
-  late final isAnim = _pgcType == 1 || _pgcType == 4;
+  bool get isAnim => _pgcType == 1 || _pgcType == 4;
   late final Rx<SuperResolutionType> superResolutionType =
       (isAnim ? Pref.superResolutionType : SuperResolutionType.disable).obs;
   Future<void> setShader([SuperResolutionType? type, NativePlayer? pp]) async {
@@ -1050,7 +1050,7 @@ class PlPlayerController with BlockConfigMixin, AudioNormalizationMixin {
           _updateIOSPip();
         }
 
-        for (final element in _statusListeners) {
+        for (final element in _statusListeners.toList()) {
           element(playing ? .playing : .paused);
         }
 
@@ -1066,7 +1066,7 @@ class PlPlayerController with BlockConfigMixin, AudioNormalizationMixin {
           playerStatus = .completed;
           _startWakeLockTimer();
 
-          for (final element in _statusListeners) {
+          for (final element in _statusListeners.toList()) {
             element(.completed);
           }
 
@@ -1088,7 +1088,7 @@ class PlPlayerController with BlockConfigMixin, AudioNormalizationMixin {
           makeHeartBeat(posInSeconds);
         }
 
-        for (final element in _positionListeners) {
+        for (final element in _positionListeners.toList()) {
           element(position);
         }
       }),
@@ -1126,7 +1126,11 @@ class PlPlayerController with BlockConfigMixin, AudioNormalizationMixin {
           if (event.startsWith('tcp: ffurl_read returned ') ||
               event.startsWith("Failed to open https://") ||
               event.startsWith("Can not open external file https://")) {
-            Timer(const Duration(milliseconds: 3000), refreshPlayer);
+            _liveRetryTimer?.cancel();
+            _liveRetryTimer = Timer(
+              const Duration(milliseconds: 3000),
+              refreshPlayer,
+            );
           }
           return;
         }
@@ -1300,6 +1304,7 @@ class PlPlayerController with BlockConfigMixin, AudioNormalizationMixin {
 
   final RxBool volumeIndicator = false.obs;
   Timer? volumeTimer;
+  Timer? _liveRetryTimer;
   bool volumeInterceptEventStream = false;
 
   final double maxVolume = PlatformUtils.isDesktop ? Pref.maxVolume : 1.0;
@@ -1335,6 +1340,66 @@ class PlPlayerController with BlockConfigMixin, AudioNormalizationMixin {
   void toggleVideoFit(VideoFitType value) {
     _prefFit = videoFit.value = value;
     video.put(VideoBoxKey.cacheVideoFit, value.index);
+    if (value.isCustomFramed) {
+      // 进入定框模式时恢复为用户设定的默认消黑边缩放倍数
+      framedZoomScale.value = _defaultFramedZoomScale;
+    }
+  }
+
+  /// 自定义画框比例（默认 16:9）
+  final RxDouble customAspectRatio = Pref.customAspectRatioValue.obs;
+
+  /// 自定义画框标签文字（用于菜单动态展示）
+  final RxString customAspectLabel = Pref.customAspectRatioLabel.obs;
+
+  /// 用户保存的默认画框内消黑边缩放倍数
+  double _defaultFramedZoomScale = Pref.customAspectZoomScale;
+  double get defaultFramedZoomScale => _defaultFramedZoomScale;
+
+  /// 当前画框内消黑边缩放倍数（捏合手势实时修改，不持久化）
+  late final RxDouble framedZoomScale = _defaultFramedZoomScale.obs;
+
+  static const double minFramedZoomScale = 1.0;
+  static const double maxFramedZoomScale = 3.0;
+
+  /// 画面比例菜单中展示的文字
+  String videoFitDesc(VideoFitType fit) =>
+      fit.isCustomFramed ? customAspectLabel.value : fit.desc;
+
+  /// 设置画框内缩放倍数（捏合手势），严格限制在 [1.0, 3.0]
+  void setFramedZoomScale(double scale) {
+    if (!scale.isFinite) return;
+    framedZoomScale.value = scale.clamp(minFramedZoomScale, maxFramedZoomScale);
+  }
+
+  /// 保存并更新自定义比例
+  void updateCustomAspectRatio(
+    double ratio,
+    String label, {
+    double? zoomScale,
+  }) {
+    if (!ratio.isFinite || ratio < 0.5 || ratio > 3.5) return;
+    customAspectRatio.value = ratio;
+    customAspectLabel.value = label;
+    video
+      ..put(VideoBoxKey.customAspectRatioValue, ratio)
+      ..put(VideoBoxKey.customAspectRatioLabel, label);
+
+    if (zoomScale != null && zoomScale.isFinite) {
+      _defaultFramedZoomScale = zoomScale.clamp(
+        minFramedZoomScale,
+        maxFramedZoomScale,
+      );
+      video.put(VideoBoxKey.customAspectZoomScale, _defaultFramedZoomScale);
+    }
+
+    // 切换为定框模式并生效
+    toggleVideoFit(VideoFitType.ratio_16x9);
+  }
+
+  /// 重置为标准 16:9
+  void resetCustomAspectRatio() {
+    updateCustomAspectRatio(16.0 / 9.0, '16:9', zoomScale: 1.0);
   }
 
   /// 读取fit
@@ -1717,6 +1782,10 @@ class PlPlayerController with BlockConfigMixin, AudioNormalizationMixin {
     }
 
     _removeListeners();
+    volumeTimer?.cancel();
+    volumeTimer = null;
+    _liveRetryTimer?.cancel();
+    _liveRetryTimer = null;
     _positionListeners.clear();
     _statusListeners.clear();
     _stopWakeLockTimer();

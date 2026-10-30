@@ -116,7 +116,7 @@ class _LikeMePageState extends State<LikeMePage> {
                     _buildHeader(theme, '累计'),
                     SliverList.separated(
                       itemBuilder: (context, index) {
-                        if (index == total.length - 1) {
+                        if (index >= total.length - 4) {
                           _likeMeController.onLoadMore();
                         }
                         return _buildItem(theme, total[index], (id) {

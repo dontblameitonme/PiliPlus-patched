@@ -62,22 +62,36 @@ class LiveSliverList extends SliverList {
   final int initialIndex;
 
   @override
-  RenderSliverList createRenderObject(BuildContext context) {
+  RenderLiveSliverList createRenderObject(BuildContext context) {
     final element = context as SliverMultiBoxAdaptorElement;
     return RenderLiveSliverList(
       childManager: element,
       initialIndex: initialIndex,
     );
   }
+
+  @override
+  void updateRenderObject(
+    BuildContext context,
+    RenderLiveSliverList renderObject,
+  ) {
+    renderObject.initialIndex = initialIndex;
+  }
 }
 
 class RenderLiveSliverList extends RenderSliverList {
   RenderLiveSliverList({
     required super.childManager,
-    this.initialIndex = 0,
-  });
+    int initialIndex = 0,
+  }) : _initialIndex = initialIndex;
 
-  final int initialIndex;
+  int _initialIndex;
+  int get initialIndex => _initialIndex;
+  set initialIndex(int value) {
+    if (_initialIndex == value) return;
+    _initialIndex = value;
+    markNeedsLayout();
+  }
 
   @override
   void performLayout() {

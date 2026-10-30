@@ -49,7 +49,8 @@ mixin CommonSlideMixin<T extends CommonSlidePage> on State<T>, TickerProvider {
     if (enableSlide) {
       _animController = AnimationController(
         vsync: this,
-        reverseDuration: const Duration(milliseconds: 500),
+        duration: const Duration(milliseconds: 250),
+        reverseDuration: const Duration(milliseconds: 250),
       );
       _slideDragGestureRecognizer =
           SlideDragGestureRecognizer(
@@ -66,7 +67,7 @@ mixin CommonSlideMixin<T extends CommonSlidePage> on State<T>, TickerProvider {
             ..onStart = _onDragStart
             ..onUpdate = _onDragUpdate
             ..onEnd = _onDragEnd
-            ..onCancel = _onDragEnd;
+            ..onCancel = _onDragCancel;
     }
   }
 
@@ -86,16 +87,18 @@ mixin CommonSlideMixin<T extends CommonSlidePage> on State<T>, TickerProvider {
       return LayoutBuilder(
         builder: (context, constraints) {
           _maxWidth = constraints.maxWidth;
-          return AnimatedBuilder(
-            animation: _animController,
-            builder: (context, child) {
-              return Align(
-                alignment: AlignmentDirectional.topStart,
-                heightFactor: 1 - _animController.value,
-                child: child,
-              );
-            },
-            child: buildPage(),
+          // 使用合成层位移替代 Align(heightFactor)，避免每帧重排整个列表
+          return ClipRect(
+            child: AnimatedBuilder(
+              animation: _animController,
+              builder: (context, child) {
+                return FractionalTranslation(
+                  translation: Offset(0.0, _animController.value),
+                  child: child,
+                );
+              },
+              child: RepaintBoundary(child: buildPage()),
+            ),
           );
         },
       );
@@ -107,16 +110,23 @@ mixin CommonSlideMixin<T extends CommonSlidePage> on State<T>, TickerProvider {
 
   Widget buildList() => throw UnimplementedError();
 
-  void _onDragEnd([_]) {
+  void _onDragCancel() {
     if (_downDx == null) return;
-    final dx = _downDx!;
-    if (_animController.value * _maxWidth + (_isRTL ? (_maxWidth - dx) : dx) >=
-        100) {
+    _downDx = null;
+    // 手势被系统打断时仅复位，不做退页判断
+    _animController.reverse();
+  }
+
+  void _onDragEnd(DragEndDetails details) {
+    if (_downDx == null) return;
+    _downDx = null;
+    final double vx = details.velocity.pixelsPerSecond.dx * (_isRTL ? -1 : 1);
+    // 仅以实际滑动距离（不混入初始触点位置）或快速甩动判断是否退页
+    if (vx >= 500 || _animController.value * _maxWidth >= 100) {
       Get.back();
     } else {
       _animController.reverse();
     }
-    _downDx = null;
   }
 
   void _onDragStart(DragStartDetails details) {

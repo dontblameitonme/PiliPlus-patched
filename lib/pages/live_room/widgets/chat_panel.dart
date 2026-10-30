@@ -20,6 +20,10 @@ import 'package:get/get.dart';
 import 'package:material_ui/material_ui.dart';
 
 class LiveRoomChatPanel extends StatelessWidget {
+  static final Expando<RegExp> _emotRegExpCache = Expando<RegExp>(
+    'liveEmotRegExp',
+  );
+
   const LiveRoomChatPanel({
     super.key,
     required this.liveRoomController,
@@ -267,7 +271,9 @@ class LiveRoomChatPanel extends StatelessWidget {
     }
     final emots = obj.emots;
     if (emots != null) {
-      RegExp regExp = RegExp(emots.keys.map(RegExp.escape).join('|'));
+      final RegExp regExp = _emotRegExpCache[emots] ??= RegExp(
+        emots.keys.map(RegExp.escape).join('|'),
+      );
       final List<InlineSpan> spanChildren = <InlineSpan>[];
       obj.text.splitMapJoin(
         regExp,

@@ -109,13 +109,22 @@ class _PlDanmakuState extends State<PlDanmaku> {
     if (currentPosition == latestAddedPosition) {
       return;
     }
+    // 补齐两次回调之间被跳过的 100ms 分桶（高倍速或偶发卡顿时避免漏弹幕）；
+    // 回退或跳跃超过 1 秒（seek）时只取当前分桶
+    final int fromPosition =
+        (latestAddedPosition < 0 ||
+            currentPosition < latestAddedPosition ||
+            currentPosition - latestAddedPosition > 1000)
+        ? currentPosition
+        : latestAddedPosition + 100;
     latestAddedPosition = currentPosition;
 
-    List<DanmakuElem>? currentDanmakuList = _plDanmakuController
-        .getCurrentDanmaku(currentPosition);
-    if (currentDanmakuList != null) {
-      final blockColorful = DanmakuOptions.blockColorful;
-      final danmakuWeight = DanmakuOptions.danmakuWeight;
+    final blockColorful = DanmakuOptions.blockColorful;
+    final danmakuWeight = DanmakuOptions.danmakuWeight;
+    for (int pos = fromPosition; pos <= currentPosition; pos += 100) {
+      final List<DanmakuElem>? currentDanmakuList = _plDanmakuController
+          .getCurrentDanmaku(pos);
+      if (currentDanmakuList == null) continue;
       for (DanmakuElem e in currentDanmakuList) {
         if (e.weight < danmakuWeight) continue;
         if (e.mode == 7) {

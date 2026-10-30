@@ -202,8 +202,10 @@ class _EpisodePanelState extends State<EpisodePanel>
         }
         _addUgcListener();
 
-        if (Accounts.main.isLogin) {
-          _seasonId = _videoDetail.seasonId!;
+        final int? resolvedSeasonId =
+            _videoDetail.seasonId ?? _videoDetail.ugcSeason?.id;
+        if (Accounts.main.isLogin && resolvedSeasonId != null) {
+          _seasonId = resolvedSeasonId;
           final favState = _ugcController.seasonFavState[_seasonId];
           if (favState != null) {
             _favState = RxnBool(favState);

@@ -46,6 +46,7 @@ import 'package:PiliPlus/plugin/pl_player/widgets/app_bar_ani.dart';
 import 'package:PiliPlus/plugin/pl_player/widgets/backward_seek.dart';
 import 'package:PiliPlus/plugin/pl_player/widgets/bottom_control.dart';
 import 'package:PiliPlus/plugin/pl_player/widgets/common_btn.dart';
+import 'package:PiliPlus/plugin/pl_player/widgets/custom_aspect_ratio_dialog.dart';
 import 'package:PiliPlus/plugin/pl_player/widgets/forward_seek.dart';
 import 'package:PiliPlus/plugin/pl_player/widgets/mpv_convert_webp.dart';
 import 'package:PiliPlus/plugin/pl_player/widgets/play_pause_btn.dart';
@@ -135,6 +136,12 @@ class _PLVideoPlayerState extends State<PLVideoPlayer>
   final RxBool _brightnessIndicator = false.obs;
   Timer? _brightnessTimer;
 
+  /// The volume plugin only keeps one global listener; only remove it on
+  /// dispose if it still belongs to this player view (e.g. a live room
+  /// in the background must keep its own listener).
+  static Object? _activeVolumeOwner;
+  final Object _volumeOwner = Object();
+
   late FullScreenMode mode;
 
   late final RxBool showRestoreScaleBtn = false.obs;
@@ -195,6 +202,8 @@ class _PLVideoPlayerState extends State<PLVideoPlayer>
   }
 
   StreamSubscription? _controlsListener;
+  StreamSubscription<VideoFitType>? _videoFitListener;
+  AnimationController? _framedZoomAnimController;
   void _onControlChanged(bool val) {
     final visible = val && !plPlayerController.controlsLock.value;
 
@@ -254,6 +263,14 @@ class _PLVideoPlayerState extends State<PLVideoPlayer>
     super.initState();
     addObserverMobile(this);
 
+    _videoFitListener = plPlayerController.videoFit.listen((fit) {
+      if (fit.isCustomFramed) {
+        // 定框模式下外框几何锁死：清除全屏视口缩放，避免侵占左右遮幅黑边
+        _transformationController.value = Matrix4.identity();
+        showRestoreScaleBtn.value = false;
+      }
+    });
+
     _controlsListener = plPlayerController.showControls.listen(
       _onControlChanged,
     );
@@ -271,6 +288,7 @@ class _PLVideoPlayerState extends State<PLVideoPlayer>
         try {
           FlutterVolumeController.updateShowSystemUI(true);
           _getCurrVolume();
+          _activeVolumeOwner = _volumeOwner;
           FlutterVolumeController.addListener(
             _onVolumeChanged,
             // The plugin defaults to ambient and overwrites AVAudioSession.
@@ -386,11 +404,17 @@ class _PLVideoPlayerState extends State<PLVideoPlayer>
     _brightnessListener?.cancel();
     _resetSubPaddingIfNeeded();
     _controlsListener?.cancel();
+    _videoFitListener?.cancel();
+    _framedZoomAnimController?.dispose();
     _animationController.dispose();
     _transformationController.dispose();
     _removeDmAction();
+    _brightnessTimer?.cancel();
     if (PlatformUtils.isMobile) {
-      FlutterVolumeController.removeListener();
+      if (identical(_activeVolumeOwner, _volumeOwner)) {
+        FlutterVolumeController.removeListener();
+        _activeVolumeOwner = null;
+      }
     }
     super.dispose();
   }
@@ -591,34 +615,26 @@ class _PLVideoPlayerState extends State<PLVideoPlayer>
       BottomControlType.fit => Obx(
         () {
           final fit = plPlayerController.videoFit.value;
+          final fitDesc = plPlayerController.videoFitDesc(fit);
           return PopupMenuButton<VideoFitType>(
             tooltip: '画面比例',
             requestFocus: false,
             initialValue: fit,
             color: Colors.black.withValues(alpha: 0.8),
-            itemBuilder: (context) {
-              return VideoFitType.values
-                  .map(
-                    (boxFit) => PopupMenuItem<VideoFitType>(
-                      height: 35,
-                      padding: const EdgeInsets.only(left: 30),
-                      value: boxFit,
-                      onTap: () => plPlayerController.toggleVideoFit(boxFit),
-                      child: Text(
-                        boxFit.desc,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 13,
-                        ),
-                      ),
-                    ),
-                  )
-                  .toList();
-            },
+            itemBuilder: (menuContext) => buildVideoFitMenuItems(
+              menuContext,
+              plPlayerController,
+              onLongPressCustom: () {
+                feedBack();
+                if (mounted) {
+                  showCustomAspectRatioDialog(context, plPlayerController);
+                }
+              },
+            ),
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 8),
               child: Text(
-                fit.desc,
+                fitDesc,
                 style: const TextStyle(color: Colors.white, fontSize: 13),
               ),
             ),
@@ -926,6 +942,40 @@ class _PLVideoPlayerState extends State<PLVideoPlayer>
     showRestoreScaleBtn.value = scale != 1.0;
   }
 
+  bool get _isFramedMode => plPlayerController.videoFit.value.isCustomFramed;
+
+  /// 定框模式下的捏合缩放：仅在画框内部居中缩放，限制在 [1.0, 3.0]
+  void _onFramedScale(double scale) {
+    _framedZoomAnimController?.stop();
+    plPlayerController.setFramedZoomScale(scale);
+    showRestoreScaleBtn.value = plPlayerController.framedZoomScale.value != 1.0;
+  }
+
+  /// 以平滑动画将画框内缩放恢复至指定倍数
+  Future<void> _animateFramedZoomTo(double target) async {
+    final begin = plPlayerController.framedZoomScale.value;
+    if (begin == target) return;
+    _framedZoomAnimController?.dispose();
+    final animController = _framedZoomAnimController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 250),
+    );
+    final anim = animController.drive(
+      Tween<double>(
+        begin: begin,
+        end: target,
+      ).chain(CurveTween(curve: Curves.easeOutCubic)),
+    );
+    animController.addListener(
+      () => plPlayerController.setFramedZoomScale(anim.value),
+    );
+    try {
+      await animController.forward(from: 0).orCancel;
+    } on TickerCanceled {
+      // disposed or interrupted by a new gesture
+    }
+  }
+
   void _onHorizontalDragStart() {
     plPlayerController.onSeekStart(plPlayerController.position.value);
   }
@@ -1108,6 +1158,12 @@ class _PLVideoPlayerState extends State<PLVideoPlayer>
 
   void onDoubleTapDownMobile(TapDownDetails details) {
     if (plPlayerController.isLive || plPlayerController.controlsLock.value) {
+      return;
+    }
+    if (_isFramedMode && plPlayerController.framedZoomScale.value > 1.0) {
+      // 定框模式下处于放大状态时，双击平滑复原至 1.0x
+      showRestoreScaleBtn.value = false;
+      _animateFramedZoomTo(1.0);
       return;
     }
     final double tapPosition = details.localPosition.dx;
@@ -1649,6 +1705,10 @@ class _PLVideoPlayerState extends State<PLVideoPlayer>
                       ),
                       onPressed: () async {
                         showRestoreScaleBtn.value = false;
+                        if (_isFramedMode) {
+                          _animateFramedZoomTo(1.0);
+                          return;
+                        }
                         final animController = AnimationController(
                           vsync: this,
                           duration: const Duration(milliseconds: 255),
@@ -1703,8 +1763,12 @@ class _PLVideoPlayerState extends State<PLVideoPlayer>
                         showControls ||
                         (isFullScreen && !plPlayerController.isSeeking.value);
                 }
-                return Offstage(
-                  offstage: offstage,
+                // PERF-13: skip building the hidden mini progress bar so its
+                // inner Obx no longer rebuilds every position update.
+                if (offstage) {
+                  return const SizedBox.shrink();
+                }
+                return RepaintBoundary(
                   child: Stack(
                     clipBehavior: Clip.none,
                     alignment: Alignment.bottomCenter,
@@ -2009,6 +2073,10 @@ class _PLVideoPlayerState extends State<PLVideoPlayer>
           onPanUpdate: _onPanUpdate,
           onPanEnd: _onPanEnd,
           onScaleUpdate: _onScaleUpdate,
+          onExternalScale: plPlayerController.videoFit.value.isCustomFramed
+              ? _onFramedScale
+              : null,
+          externalScale: () => plPlayerController.framedZoomScale.value,
           scaleGestureRecognizer: _scaleGestureRecognizer,
           panEnabled: false,
           minScale: plPlayerController.enableShrinkVideoSize ? 0.75 : 1,
@@ -2024,6 +2092,34 @@ class _PLVideoPlayerState extends State<PLVideoPlayer>
             child: Obx(
               () {
                 final videoFit = plPlayerController.videoFit.value;
+                if (videoFit.isCustomFramed) {
+                  return Transform.flip(
+                    flipX: plPlayerController.flipX.value,
+                    flipY: plPlayerController.flipY.value,
+                    child: Center(
+                      child: AspectRatio(
+                        // 1. 严格锁定画框比例并居中，左右/上下自动留出固定遮幅
+                        aspectRatio: plPlayerController.customAspectRatio.value,
+                        // 2. 硬切除一切超出画框的像素（被推出去的硬编码黑边）
+                        child: ClipRect(
+                          child: Obx(
+                            // 3. 仅在画框内部严格居中等比缩放
+                            () => Transform.scale(
+                              scale: plPlayerController.framedZoomScale.value,
+                              child: FittedBox(
+                                child: SimpleVideo(
+                                  controller:
+                                      plPlayerController.videoController!,
+                                  fill: widget.fill,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  );
+                }
                 return Transform.flip(
                   flipX: plPlayerController.flipX.value,
                   flipY: plPlayerController.flipY.value,
@@ -2144,7 +2240,7 @@ class _PLVideoPlayerState extends State<PLVideoPlayer>
           ),
         ) ??
         false;
-    if (!success) return;
+    if (!success || !mounted) return;
 
     final progress = 0.0.obs;
     final name =

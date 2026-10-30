@@ -126,6 +126,7 @@ abstract final class ReplyGrpc {
         pagination: offset == null ? null : FeedPagination(offset: offset),
       ),
       MainListReply.fromBuffer,
+      isolate: true,
     );
     if (res case Success(:final response)) {
       // keyword filter
@@ -166,6 +167,7 @@ abstract final class ReplyGrpc {
         pagination: offset == null ? null : FeedPagination(offset: offset),
       ),
       DetailListReply.fromBuffer,
+      isolate: true,
     );
     return res..dataOrNull?.root.replies.removeWhere(needRemoveGrpc);
   }

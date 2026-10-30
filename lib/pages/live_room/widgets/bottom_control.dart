@@ -5,7 +5,9 @@ import 'package:PiliPlus/pages/video/widgets/header_mixin.dart';
 import 'package:PiliPlus/plugin/pl_player/controller.dart';
 import 'package:PiliPlus/plugin/pl_player/models/video_fit_type.dart';
 import 'package:PiliPlus/plugin/pl_player/widgets/common_btn.dart';
+import 'package:PiliPlus/plugin/pl_player/widgets/custom_aspect_ratio_dialog.dart';
 import 'package:PiliPlus/plugin/pl_player/widgets/play_pause_btn.dart';
+import 'package:PiliPlus/utils/feed_back.dart';
 import 'package:PiliPlus/utils/storage.dart';
 import 'package:PiliPlus/utils/storage_key.dart';
 import 'package:PiliPlus/utils/theme_utils.dart';
@@ -132,30 +134,22 @@ class _BottomControlState extends State<BottomControl> with HeaderMixin {
                 tooltip: '画面比例',
                 initialValue: plPlayerController.videoFit.value,
                 color: Colors.black.withValues(alpha: 0.8),
-                itemBuilder: (context) {
-                  return VideoFitType.values
-                      .map(
-                        (boxFit) => PopupMenuItem<VideoFitType>(
-                          height: 35,
-                          padding: const EdgeInsets.only(left: 30),
-                          value: boxFit,
-                          onTap: () =>
-                              plPlayerController.toggleVideoFit(boxFit),
-                          child: Text(
-                            boxFit.desc,
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 13,
-                            ),
-                          ),
-                        ),
-                      )
-                      .toList();
-                },
+                itemBuilder: (menuContext) => buildVideoFitMenuItems(
+                  menuContext,
+                  plPlayerController,
+                  onLongPressCustom: () {
+                    feedBack();
+                    if (context.mounted) {
+                      showCustomAspectRatioDialog(context, plPlayerController);
+                    }
+                  },
+                ),
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 10),
                   child: Text(
-                    plPlayerController.videoFit.value.desc,
+                    plPlayerController.videoFitDesc(
+                      plPlayerController.videoFit.value,
+                    ),
                     style: const TextStyle(color: Colors.white, fontSize: 13),
                   ),
                 ),

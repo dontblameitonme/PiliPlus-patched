@@ -84,7 +84,7 @@ class _SubDetailPageState extends State<SubDetailPage> with GridMixin {
             ? SliverGrid.builder(
                 gridDelegate: gridDelegate,
                 itemBuilder: (context, index) {
-                  if (index == response.length - 1) {
+                  if (index >= response.length - 4) {
                     _subDetailController.onLoadMore();
                   }
                   return SubVideoCardH(

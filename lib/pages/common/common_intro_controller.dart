@@ -101,10 +101,17 @@ abstract class CommonIntroController extends GetxController
   }
 
   // 查看同时在看人数
+  bool _onlineTotalFetched = false;
   Future<void> queryOnlineTotal() async {
     if (!isShowOnlineTotal) {
       return;
     }
+    // PERF-19: only keep polling while the video is actually playing.
+    if (_onlineTotalFetched &&
+        !videoDetailCtr.plPlayerController.playerStatus.isPlaying) {
+      return;
+    }
+    _onlineTotalFetched = true;
     final result = await VideoHttp.onlineTotal(
       aid: aid,
       bvid: bvid,

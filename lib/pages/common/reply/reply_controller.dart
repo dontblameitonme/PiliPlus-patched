@@ -310,8 +310,14 @@ abstract class ReplyController<R> extends CommonListController<R, ReplyInfo> {
 
   void onRemove(int index, ReplyInfo item, int? subIndex) {
     if (subIndex == null) {
-      loadingState.value.data!.removeAt(index);
+      final list = loadingState.value.dataOrNull;
+      if (list == null || index < 0 || index >= list.length) return;
+      if (list[index].replyControl.isUpTop) {
+        hasUpTop = false;
+      }
+      list.removeAt(index);
     } else {
+      if (subIndex < 0 || subIndex >= item.replies.length) return;
       item
         ..count -= 1
         ..replies.removeAt(subIndex);
@@ -344,8 +350,9 @@ abstract class ReplyController<R> extends CommonListController<R, ReplyInfo> {
     );
     if (res.isSuccess) {
       item.replyControl.isUpTop = !isUpTop;
-      if (!isUpTop && index != 0) {
-        final list = loadingState.value.data!;
+      hasUpTop = !isUpTop;
+      final list = loadingState.value.dataOrNull;
+      if (!isUpTop && list != null && index > 0 && index < list.length) {
         list
           ..first.replyControl.isUpTop = false
           ..insert(0, list.removeAt(index));

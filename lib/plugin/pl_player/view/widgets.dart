@@ -94,7 +94,7 @@ Widget buildSeekPreviewWidget(
               );
               int align = index % totalPerImage;
               int x = align % imgXLen;
-              int y = align ~/ imgYLen;
+              int y = align ~/ imgXLen;
               final url = data.image[pageIndex];
 
               return ClipRRect(
@@ -105,6 +105,8 @@ Widget buildSeekPreviewWidget(
                   y: y,
                   imgXSize: imgXSize,
                   imgYSize: imgYSize,
+                  imgXLen: imgXLen,
+                  imgYLen: imgYLen,
                   height: height,
                   imageCache: plPlayerController.previewCache,
                   onSetSize: (xSize, ySize) => data
@@ -133,6 +135,8 @@ class VideoShotImage extends StatefulWidget {
     required this.y,
     required this.imgXSize,
     required this.imgYSize,
+    this.imgXLen = 10,
+    this.imgYLen = 10,
     required this.height,
     required this.onSetSize,
     required this.isMounted,
@@ -144,6 +148,8 @@ class VideoShotImage extends StatefulWidget {
   final int y;
   final double imgXSize;
   final double imgYSize;
+  final int imgXLen;
+  final int imgYLen;
   final double height;
   final Function(double imgXSize, double imgYSize) onSetSize;
   final ValueGetter<bool> isMounted;
@@ -198,8 +204,8 @@ class _VideoShotImageState extends State<VideoShotImage> {
   void _initSize() {
     if (widget.imgXSize == 0) {
       if (_image != null) {
-        final imgXSize = _image!.width / 10;
-        final imgYSize = _image!.height / 10;
+        final imgXSize = _image!.width / widget.imgXLen;
+        final imgYSize = _image!.height / widget.imgYLen;
         final height = widget.height;
         final width = height * imgXSize / imgYSize;
         _setRect(width, height);
@@ -241,13 +247,17 @@ class _VideoShotImageState extends State<VideoShotImage> {
       widget.imageCache[url] = null;
       _getImg(url).then((image) {
         if (image != null) {
-          if (widget.isMounted()) {
+          final bool cached = widget.isMounted();
+          if (cached) {
             widget.imageCache[url] = image;
           }
           if (mounted) {
             _image = image;
             _initSizeIfNeeded();
             setState(() {});
+          } else if (!cached) {
+            // nobody holds the decoded image, release its native memory
+            image.dispose();
           }
         } else {
           widget.imageCache.remove(url);

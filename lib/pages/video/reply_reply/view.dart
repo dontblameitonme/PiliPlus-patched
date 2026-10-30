@@ -39,6 +39,7 @@ class VideoReplyReplyPanel extends CommonSlidePage {
     required this.replyType,
     this.isNested = false,
     this.upMid,
+    this.heroTag,
   });
   final int? id;
   final int oid;
@@ -49,6 +50,9 @@ class VideoReplyReplyPanel extends CommonSlidePage {
   final int replyType;
   final bool isNested;
   final Int64? upMid;
+
+  /// 所属视频页的 heroTag，用于评论时间戳跳转到正确的视频页
+  final String? heroTag;
 
   static Future<void>? toReply({
     required int oid,
@@ -227,6 +231,7 @@ class _VideoReplyReplyPanelState extends State<VideoReplyReplyPanel>
             onReply: (replyItem) => controller.onReply(replyItem, index: -1),
             upMid: widget.upMid ?? controller.upMid,
             onCheckReply: controller.onCheckReply,
+            getTag: _getTag,
           ),
         ),
         SliverToBoxAdapter(
@@ -308,6 +313,11 @@ class _VideoReplyReplyPanelState extends State<VideoReplyReplyPanel>
     };
   }
 
+  String? Function()? get _getTag {
+    final heroTag = widget.heroTag;
+    return heroTag != null ? () => heroTag : null;
+  }
+
   Widget _replyItem(BuildContext context, ReplyInfo replyItem, int index) {
     return ReplyItemGrpc(
       replyItem: replyItem,
@@ -315,6 +325,7 @@ class _VideoReplyReplyPanelState extends State<VideoReplyReplyPanel>
       onReply: (replyItem) => controller.onReply(replyItem, index: index),
       onDelete: (item, subIndex) => controller.onRemove(index, item, null),
       upMid: controller.upMid,
+      getTag: _getTag,
       showDialogue: () => MiniScaffold.of(context).showBottomSheet(
         constraints: const BoxConstraints(),
         (context) => VideoReplyReplyPanel(
@@ -324,6 +335,7 @@ class _VideoReplyReplyPanelState extends State<VideoReplyReplyPanel>
           replyType: widget.replyType,
           isVideoDetail: true,
           isNested: widget.isNested,
+          heroTag: widget.heroTag,
         ),
       ),
       jumpToDialogue: () {

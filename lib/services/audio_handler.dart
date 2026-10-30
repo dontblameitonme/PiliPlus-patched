@@ -166,13 +166,11 @@ class VideoPlayerServiceHandler extends BaseAudioHandler with SeekHandler {
     if (onPlay != null && debugLabel == 'onVideoPaused') return;
 
     final newConfig = (status, isBuffering, isLive, speed);
-    if (_lastConfig == newConfig) {
-      if (_lastPos != null) {
-        final pos = position.inSeconds;
-        final lastPos = _lastPos!.inSeconds;
-        _lastPos = position;
-        if (pos == lastPos && pos != 0) return;
-      }
+    final int? lastSec = _lastPos?.inSeconds;
+    _lastPos = position;
+    if (_lastConfig == newConfig && lastSec != null) {
+      final int posSec = position.inSeconds;
+      if (posSec == lastSec && posSec != 0) return;
     }
     _lastConfig = newConfig;
 

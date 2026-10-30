@@ -99,7 +99,7 @@ class _LiveSearchChildPageState extends State<LiveSearchChildPage>
                     LiveSearchType.room => SliverGrid.builder(
                       gridDelegate: roomDelegate,
                       itemBuilder: (context, index) {
-                        if (index == response.length - 1) {
+                        if (index >= response.length - 4) {
                           _controller.onLoadMore();
                         }
                         return LiveCardVSearch(
@@ -111,7 +111,7 @@ class _LiveSearchChildPageState extends State<LiveSearchChildPage>
                     LiveSearchType.user => SliverGrid.builder(
                       gridDelegate: userDelegate,
                       itemBuilder: (context, index) {
-                        if (index == response.length - 1) {
+                        if (index >= response.length - 4) {
                           _controller.onLoadMore();
                         }
                         return LiveSearchUserItem(

@@ -184,7 +184,7 @@ class _NoteListPageState extends State<NoteListPage>
           );
           return SliverList.separated(
             itemBuilder: (context, index) {
-              if (index == response.length - 1) {
+              if (index >= response.length - 4) {
                 _controller.onLoadMore();
               }
               return _itemWidget(response[index]);

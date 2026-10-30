@@ -83,7 +83,7 @@ class _SysMsgPageState extends State<SysMsgPage> {
           return SliverList.separated(
             itemCount: response.length,
             itemBuilder: (context, int index) {
-              if (index == response.length - 1) {
+              if (index >= response.length - 4) {
                 _sysMsgController.onLoadMore();
               }
               final item = response[index];

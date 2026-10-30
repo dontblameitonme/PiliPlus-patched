@@ -101,7 +101,7 @@ class _SearchUserPanelState
     return SliverGrid.builder(
       gridDelegate: gridDelegate,
       itemBuilder: (BuildContext context, int index) {
-        if (index == list.length - 1) {
+        if (index >= list.length - 4) {
           controller.onLoadMore();
         }
         return SearchUserItem(

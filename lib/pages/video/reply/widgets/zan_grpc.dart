@@ -85,6 +85,8 @@ class ZanButtonGrpc extends StatelessWidget {
     }
   }
 
+  static final Expando<bool> _processing = Expando<bool>('zanProcessing');
+
   static void _toastNotLogin() {
     SmartDialog.showToast('账号未登录');
   }
@@ -93,7 +95,6 @@ class ZanButtonGrpc extends StatelessWidget {
   Widget build(BuildContext context) {
     final isLogin = Accounts.main.isLogin;
     final ThemeData theme = Theme.of(context);
-    late bool isProcessing = false;
     final action = replyItem.replyControl.action;
     final isLike = action == $fixnum.Int64.ONE;
     final isDislike = action == $fixnum.Int64.TWO;
@@ -114,10 +115,14 @@ class ZanButtonGrpc extends StatelessWidget {
       })
       onLikeOrDislike,
     ) async {
-      if (isProcessing) return;
-      isProcessing = true;
-      await onLikeOrDislike(context, isLike: isLike, isDislike: isDislike);
-      isProcessing = false;
+      // 以 replyItem 为 Key 记录处理中状态，避免 rebuild 后防重失效
+      if (_processing[replyItem] == true) return;
+      _processing[replyItem] = true;
+      try {
+        await onLikeOrDislike(context, isLike: isLike, isDislike: isDislike);
+      } finally {
+        _processing[replyItem] = null;
+      }
     }
 
     return Row(

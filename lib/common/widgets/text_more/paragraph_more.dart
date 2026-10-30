@@ -96,12 +96,12 @@ class RenderParagraphMore extends RenderParagraph {
       if (_onShowMore != null) {
         _tapGestureRecognizer ??= TapGestureRecognizer()..onTap = _onShowMore;
       }
-      _morePainter ??= TextPainter(
+      (_morePainter ??= TextPainter(
         text: _moreTextSpan(),
         textDirection: textDirection,
         textScaler: textScaler,
         locale: locale,
-      )..layout(maxWidth: constraints.maxWidth);
+      )).layout(maxWidth: constraints.maxWidth);
       size = Size(
         size.width,
         constraints.constrainHeight(size.height + _morePainter!.height),
@@ -123,7 +123,7 @@ class RenderParagraphMore extends RenderParagraph {
 
   @override
   bool hitTestChildren(BoxHitTestResult result, {required Offset position}) {
-    if (_tapGestureRecognizer != null) {
+    if (didOverflowHeight && _tapGestureRecognizer != null) {
       if (_morePainter != null) {
         if (position.dx < _morePainter!.width) {
           final height = textPainter.height;

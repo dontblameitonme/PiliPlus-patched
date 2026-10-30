@@ -93,11 +93,11 @@ class _PagePanelState extends State<PagePanel> {
   }
 
   void _reset() {
+    _ugcController.indexNotifier.removeListener(_listener);
     if (_isCurr = widget.parts == null) {
       _initIfNeeded();
       _ugcController.indexNotifier.addListener(_listener);
     } else {
-      _ugcController.indexNotifier.removeListener(_listener);
       _parts = widget.parts!;
     }
   }

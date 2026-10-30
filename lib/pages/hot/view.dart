@@ -127,7 +127,7 @@ class _HotPageState extends State<HotPage>
             ? SliverGrid.builder(
                 gridDelegate: gridDelegate,
                 itemBuilder: (context, index) {
-                  if (index == response.length - 1) {
+                  if (index >= response.length - 4) {
                     controller.onLoadMore();
                   }
                   return VideoCardH(

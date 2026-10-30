@@ -43,7 +43,6 @@ import 'package:PiliPlus/utils/theme_utils.dart';
 import 'package:PiliPlus/utils/utils.dart';
 import 'package:PiliPlus/utils/video_utils.dart';
 import 'package:canvas_danmaku/canvas_danmaku.dart';
-import 'package:easy_debounce/easy_throttle.dart';
 import 'package:flutter/foundation.dart' show kDebugMode, kReleaseMode;
 import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
 import 'package:get/get.dart';
@@ -379,12 +378,16 @@ class LiveRoomController extends GetxController {
     );
   }
 
+  Timer? _scrollTimer;
+
+  /// PERF-14: trailing-edge scheduling so the last messages in a burst are
+  /// always scrolled into view (the previous leading throttle dropped them).
   void scrollToBottom() {
-    EasyThrottle.throttle(
-      'liveDm',
-      const Duration(milliseconds: 500),
-      () => WidgetsBinding.instance.addPostFrameCallback(_scrollToBottom),
-    );
+    if (_scrollTimer?.isActive ?? false) return;
+    _scrollTimer = Timer(const Duration(milliseconds: 200), () {
+      _scrollTimer = null;
+      WidgetsBinding.instance.addPostFrameCallback(_scrollToBottom);
+    });
   }
 
   void _scrollToBottom([_]) {
@@ -511,6 +514,8 @@ class LiveRoomController extends GetxController {
 
   @override
   void onClose() {
+    _scrollTimer?.cancel();
+    _scrollTimer = null;
     _stopSizeSub();
     closeLiveMsg();
     cancelLikeTimer();

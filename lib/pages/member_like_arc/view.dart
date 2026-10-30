@@ -93,7 +93,7 @@ class _MemberLikeArcPageState extends State<MemberLikeArcPage> {
                 gridDelegate: gridDelegate,
                 itemCount: response.length,
                 itemBuilder: (context, index) {
-                  if (index == response.length - 1) {
+                  if (index >= response.length - 4) {
                     _ctr.onLoadMore();
                   }
                   return MemberCoinLikeItem(item: response[index]);

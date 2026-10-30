@@ -82,10 +82,12 @@ class _HomePageState extends CommonPageState<HomePage>
           customAppBar(),
         tabBar,
         Expanded(
-          child: onBuild(
-            tabBarView(
-              controller: _homeController.tabController,
-              children: _homeController.tabs.map((e) => e.page).toList(),
+          child: RepaintBoundary(
+            child: onBuild(
+              tabBarView(
+                controller: _homeController.tabController,
+                children: _homeController.tabs.map((e) => e.page).toList(),
+              ),
             ),
           ),
         ),
@@ -121,20 +123,22 @@ class _HomePageState extends CommonPageState<HomePage>
         );
       }
       if (_homeController.showTopBar case final showTopBar?) {
-        return Obx(() {
-          final showSearchBar = showTopBar.value;
-          return AnimatedOpacity(
-            opacity: showSearchBar ? 1 : 0,
-            duration: const Duration(milliseconds: 300),
-            child: AnimatedContainer(
-              curve: Curves.easeInOutCubicEmphasized,
-              duration: const Duration(milliseconds: 500),
-              height: showSearchBar ? Style.topBarHeight : 0,
-              padding: padding,
-              child: child,
-            ),
-          );
-        });
+        return RepaintBoundary(
+          child: Obx(() {
+            final showSearchBar = showTopBar.value;
+            return AnimatedOpacity(
+              opacity: showSearchBar ? 1 : 0,
+              duration: const Duration(milliseconds: 200),
+              child: AnimatedContainer(
+                curve: Curves.easeInOutCubicEmphasized,
+                duration: const Duration(milliseconds: 250),
+                height: showSearchBar ? Style.topBarHeight : 0,
+                padding: padding,
+                child: child,
+              ),
+            );
+          }),
+        );
       }
     }
     return Container(

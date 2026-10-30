@@ -164,7 +164,7 @@ class _MemberOpusState extends State<MemberOpus>
             gridDelegate: gridDelegate,
             delegate: SliverChildBuilderDelegate(
               (context, index) {
-                if (index == response.length - 1) {
+                if (index >= response.length - 4) {
                   _controller.onLoadMore();
                 }
                 return SpaceOpusItemGrpc(item: response[index]);

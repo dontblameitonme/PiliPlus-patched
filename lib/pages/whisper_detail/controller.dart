@@ -106,13 +106,34 @@ class WhisperDetailController extends CommonListController<RspSessionMsg, Msg> {
     // return;
     assert((message != null) ^ (picMsg != null));
     if (_isSending) return;
-    _isSending = true;
-    feedBack();
-    SmartDialog.dismiss();
     if (!account.isLogin) {
+      SmartDialog.dismiss();
       SmartDialog.showToast('请先登录');
       return;
     }
+    _isSending = true;
+    try {
+      await _sendMsg(
+        message: message,
+        picMsg: picMsg,
+        onClearText: onClearText,
+        msgType: msgType,
+        index: index,
+      );
+    } finally {
+      _isSending = false;
+    }
+  }
+
+  Future<void> _sendMsg({
+    String? message,
+    Map? picMsg,
+    required VoidCallback onClearText,
+    MsgType? msgType,
+    int? index,
+  }) async {
+    feedBack();
+    SmartDialog.dismiss();
     final res = await ImGrpc.sendMsg(
       senderUid: account.mid,
       receiverId: mid!,
@@ -137,7 +158,6 @@ class WhisperDetailController extends CommonListController<RspSessionMsg, Msg> {
     } else {
       res.toast();
     }
-    _isSending = false;
   }
 
   @override

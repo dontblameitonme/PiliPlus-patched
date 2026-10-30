@@ -269,5 +269,14 @@ abstract final class VideoBoxKey {
       playSpeedDefault = 'playSpeedDefault',
       longPressSpeedDefault = 'longPressSpeedDefault',
       speedsList = 'speedsList',
-      cacheVideoFit = 'cacheVideoFit';
+      cacheVideoFit = 'cacheVideoFit',
+          // 自定义画框（定框消黑边）比例值，double，默认 16 / 9
+          customAspectRatioValue =
+          'customAspectRatioValue',
+          // 自定义画框比例标签，String，默认 '16:9'
+          customAspectRatioLabel =
+          'customAspectRatioLabel',
+          // 画框内消黑边默认缩放倍数，double，默认 1.0
+          customAspectZoomScale =
+          'customAspectZoomScale';
 }

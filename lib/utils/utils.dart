@@ -41,8 +41,9 @@ abstract final class Utils {
     return copyText(jsonEncoder.convert(json), toastText: toastText);
   }
 
+  static int _heroTagSeq = 0;
   static String makeHeroTag(dynamic v) {
-    return v.toString() + random.nextInt(9999).toString();
+    return '${v}_${_heroTagSeq++}';
   }
 
   static List<int> generateRandomBytes(int minLength, int maxLength) {

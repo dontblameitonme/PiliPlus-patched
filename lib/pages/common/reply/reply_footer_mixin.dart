@@ -19,8 +19,41 @@ mixin ReplyFooterMixin<T extends StatefulWidget, R> on State<T> {
     final fold = controller.foldCard;
     if (fold != null) return _buildFoldItem(fold);
 
+    if (controller.loadMoreFailed && !controller.isEnd) {
+      return _buildRetryItem();
+    }
+
     controller.onLoadMore();
     return _buildEndItem();
+  }
+
+  Widget _buildRetryItem() {
+    return Container(
+      height: 125,
+      alignment: .topCenter,
+      margin: .only(bottom: padding.bottom),
+      child: Material(
+        type: .transparency,
+        child: InkWell(
+          onTap: () {
+            controller.loadMoreFailed = false;
+            // 重建底部后会再次触发 onLoadMore
+            controller.loadingState.refresh();
+          },
+          child: SizedBox(
+            width: .infinity,
+            child: Padding(
+              padding: const .symmetric(vertical: 12),
+              child: Text(
+                '加载失败，点击重试',
+                textAlign: .center,
+                style: TextStyle(fontSize: 12, color: colorScheme.outline),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
   }
 
   Widget _buildFoldItem(FoldCard fold) {

@@ -240,7 +240,11 @@ class _ViewerState extends State<Viewer> with SingleTickerProviderStateMixin {
       endScale = widget.minScale;
     }
     final position = _clampPosition(
-      Offset.lerp(_downPos!, _position, endScale / _scale)!,
+      Offset.lerp(
+        _downPos ?? widget.containerSize.center(Offset.zero),
+        _position,
+        endScale / _scale,
+      )!,
       endScale,
     );
 
