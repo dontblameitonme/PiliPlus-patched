@@ -916,6 +916,16 @@ abstract final class Pref {
   static int get cacheVideoFit =>
       _video.get(VideoBoxKey.cacheVideoFit, defaultValue: 1);
 
+  // [Custom Framed Zoom / 消黑边自定义画框]
+  static double get customAspectRatioValue =>
+      (_video.get(VideoBoxKey.customAspectRatioValue, defaultValue: 16.0 / 9.0) as num).toDouble();
+
+  static String get customAspectRatioLabel =>
+      _video.get(VideoBoxKey.customAspectRatioLabel, defaultValue: '16:9') as String;
+
+  static double get customAspectZoomScale =>
+      (_video.get(VideoBoxKey.customAspectZoomScale, defaultValue: 1.0) as num).toDouble();
+
   static bool get continuePlayInBackground =>
       _setting.get(SettingBoxKey.continuePlayInBackground, defaultValue: false);
 

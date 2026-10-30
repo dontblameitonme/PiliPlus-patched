@@ -7,6 +7,13 @@ $env:GIT_AUTHOR_EMAIL = "example@example.com"
 $env:GIT_COMMITTER_NAME = "ci"
 $env:GIT_COMMITTER_EMAIL = "example@example.com"
 
+if (-not $env:FLUTTER_ROOT) {
+    $env:FLUTTER_ROOT = "C:\flutter"
+}
+if (-not $env:GITHUB_WORKSPACE) {
+    $env:GITHUB_WORKSPACE = (Resolve-Path "$PSScriptRoot\..\..").Path
+}
+
 # TODO: remove
 # https://github.com/flutter/flutter/issues/182281
 $NewOverScrollIndicator = "362b1de29974ffc1ed6faa826e1df870d7bec75f";
@@ -215,7 +222,11 @@ $patches_material = @($ModalBarrierPatchMaterial, $NavigationDrawerPatchMaterial
                     $FABPatchMaterial, $TextFieldPatchMaterial, $ScaffoldPatchMaterial, $RefreshIndicatorPatchMaterial,
                     $TabsPatchMaterial)
 
-$PubCacheDir = "~/.pub-cache"
+$PubCacheDir = if ($IsWindows -or $env:OS -like "*Windows*") {
+    "$env:LOCALAPPDATA/Pub/Cache"
+} else {
+    "~/.pub-cache"
+}
 
 switch ($platform.ToLower()) {
     "android" {

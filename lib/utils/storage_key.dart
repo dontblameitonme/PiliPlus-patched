@@ -269,5 +269,9 @@ abstract final class VideoBoxKey {
       playSpeedDefault = 'playSpeedDefault',
       longPressSpeedDefault = 'longPressSpeedDefault',
       speedsList = 'speedsList',
-      cacheVideoFit = 'cacheVideoFit';
+      cacheVideoFit = 'cacheVideoFit',
+      // [Custom Framed Zoom / 消黑边自定义画框]
+      customAspectRatioValue = 'customAspectRatioValue',
+      customAspectRatioLabel = 'customAspectRatioLabel',
+      customAspectZoomScale = 'customAspectZoomScale';
 }

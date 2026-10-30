@@ -36,6 +36,7 @@ import 'package:PiliPlus/pages/video/post_panel/popup_menu_text.dart';
 import 'package:PiliPlus/pages/video/post_panel/view.dart';
 import 'package:PiliPlus/pages/video/widgets/header_control.dart';
 import 'package:PiliPlus/plugin/pl_player/controller.dart';
+import 'package:PiliPlus/plugin/pl_player/view/custom_aspect_ratio_dialog.dart';
 import 'package:PiliPlus/plugin/pl_player/models/bottom_control_type.dart';
 import 'package:PiliPlus/plugin/pl_player/models/data_status.dart';
 import 'package:PiliPlus/plugin/pl_player/models/double_tap_type.dart';
@@ -591,6 +592,11 @@ class _PLVideoPlayerState extends State<PLVideoPlayer>
       BottomControlType.fit => Obx(
         () {
           final fit = plPlayerController.videoFit.value;
+          // [Custom Framed Zoom / 16:9及自定义画框居中消黑边缩放]
+          final isCustomFit = fit == VideoFitType.ratio_16x9;
+          final currentLabel = isCustomFit
+              ? plPlayerController.customAspectLabel.value
+              : fit.desc;
           return PopupMenuButton<VideoFitType>(
             tooltip: '画面比例',
             requestFocus: false,
@@ -599,26 +605,54 @@ class _PLVideoPlayerState extends State<PLVideoPlayer>
             itemBuilder: (context) {
               return VideoFitType.values
                   .map(
-                    (boxFit) => PopupMenuItem<VideoFitType>(
-                      height: 35,
-                      padding: const EdgeInsets.only(left: 30),
-                      value: boxFit,
-                      onTap: () => plPlayerController.toggleVideoFit(boxFit),
-                      child: Text(
-                        boxFit.desc,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 13,
+                    (boxFit) {
+                      final isCustom = boxFit == VideoFitType.ratio_16x9;
+                      final text = isCustom
+                          ? plPlayerController.customAspectLabel.value
+                          : boxFit.desc;
+                      return PopupMenuItem<VideoFitType>(
+                        height: 35,
+                        padding: EdgeInsets.zero,
+                        value: boxFit,
+                        child: GestureDetector(
+                          behavior: HitTestBehavior.opaque,
+                          onTap: () {
+                            Get.back();
+                            plPlayerController.toggleVideoFit(boxFit);
+                          },
+                          onLongPress: isCustom
+                              ? () {
+                                  Get.back();
+                                  feedBack();
+                                  showCustomAspectRatioDialog(
+                                    context,
+                                    plPlayerController,
+                                  );
+                                }
+                              : null,
+                          child: Container(
+                            alignment: Alignment.centerLeft,
+                            padding: const EdgeInsets.only(left: 30),
+                            width: double.infinity,
+                            height: double.infinity,
+                            child: Text(
+                              text,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 13,
+                              ),
+                            ),
+                          ),
                         ),
-                      ),
-                    ),
+                      );
+                    },
                   )
                   .toList();
             },
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 8),
               child: Text(
-                fit.desc,
+                currentLabel,
                 style: const TextStyle(color: Colors.white, fontSize: 13),
               ),
             ),
@@ -1106,6 +1140,32 @@ class _PLVideoPlayerState extends State<PLVideoPlayer>
     _gestureType = null;
   }
 
+  /// [Custom Framed Zoom / 16:9及自定义画框居中消黑边缩放]
+  /// 平滑复原定框模式下的内部缩放到 1.0x
+  Future<void> _resetFramedZoomScaleAnimated() async {
+    final currentScale = plPlayerController.framedZoomScale.value;
+    if (currentScale <= 1.0) return;
+
+    final animController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 250),
+    );
+    final anim = animController.drive(
+      Tween<double>(begin: currentScale, end: 1.0)
+          .chain(CurveTween(curve: Curves.easeOut)),
+    );
+    void listener() {
+      plPlayerController.framedZoomScale.value = anim.value;
+    }
+
+    animController.addListener(listener);
+    await animController.forward(from: 0);
+    animController
+      ..removeListener(listener)
+      ..dispose();
+    plPlayerController.updateFramedZoomScale(1.0);
+  }
+
   void onDoubleTapDownMobile(TapDownDetails details) {
     if (plPlayerController.isLive || plPlayerController.controlsLock.value) {
       return;
@@ -1120,6 +1180,15 @@ class _PLVideoPlayerState extends State<PLVideoPlayer>
     } else {
       type = DoubleTapType.right;
     }
+
+    // [Custom Framed Zoom] 若处于定框消黑边模式且已放大，双击中央区域时平滑复原至 1.0x
+    if (plPlayerController.videoFit.value.isCustomFramed &&
+        plPlayerController.framedZoomScale.value > 1.0 &&
+        type == DoubleTapType.center) {
+      _resetFramedZoomScaleAnimated();
+      return;
+    }
+
     plPlayerController.doubleTapFuc(type);
   }
 
@@ -1164,6 +1233,11 @@ class _PLVideoPlayerState extends State<PLVideoPlayer>
   void _onDoubleTapDown(TapDownDetails details) {
     switch (details.kind) {
       case ui.PointerDeviceKind.mouse when PlatformUtils.isDesktop:
+        if (plPlayerController.videoFit.value.isCustomFramed &&
+            plPlayerController.framedZoomScale.value > 1.0) {
+          _resetFramedZoomScaleAnimated();
+          return;
+        }
         plPlayerController.triggerFullScreen(status: !isFullScreen);
       default:
         onDoubleTapDownMobile(details);
@@ -1628,52 +1702,61 @@ class _PLVideoPlayerState extends State<PLVideoPlayer>
         //   ),
         // ),
         Obx(
-          () =>
-              showRestoreScaleBtn.value && plPlayerController.showControls.value
-              ? Align(
-                  alignment: Alignment.bottomCenter,
-                  child: Padding(
-                    padding: const EdgeInsets.only(bottom: 95),
-                    child: FilledButton.tonal(
-                      style: FilledButton.styleFrom(
-                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                        backgroundColor: colorScheme.secondaryContainer
-                            .withValues(alpha: 0.8),
-                        visualDensity: VisualDensity.compact,
-                        padding: const EdgeInsets.all(15),
-                        shape: const RoundedRectangleBorder(
-                          borderRadius: BorderRadius.all(
-                            Radius.circular(6),
+          () {
+            final isFramed = plPlayerController.videoFit.value.isCustomFramed;
+            final isScaled = isFramed
+                ? (plPlayerController.framedZoomScale.value > 1.0 && plPlayerController.showControls.value)
+                : (showRestoreScaleBtn.value && plPlayerController.showControls.value);
+            return isScaled
+                ? Align(
+                    alignment: Alignment.bottomCenter,
+                    child: Padding(
+                      padding: const EdgeInsets.only(bottom: 95),
+                      child: FilledButton.tonal(
+                        style: FilledButton.styleFrom(
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          backgroundColor: colorScheme.secondaryContainer
+                              .withValues(alpha: 0.8),
+                          visualDensity: VisualDensity.compact,
+                          padding: const EdgeInsets.all(15),
+                          shape: const RoundedRectangleBorder(
+                            borderRadius: BorderRadius.all(
+                              Radius.circular(6),
+                            ),
                           ),
                         ),
-                      ),
-                      onPressed: () async {
-                        showRestoreScaleBtn.value = false;
-                        final animController = AnimationController(
-                          vsync: this,
-                          duration: const Duration(milliseconds: 255),
-                        );
-                        final anim = animController.drive(
-                          Matrix4Tween(
-                            begin: _transformationController.value,
-                            end: Matrix4.identity(),
-                          ).chain(CurveTween(curve: Curves.easeOut)),
-                        );
-                        void listener() {
-                          _transformationController.value = anim.value;
-                        }
+                        onPressed: () async {
+                          if (isFramed) {
+                            await _resetFramedZoomScaleAnimated();
+                            return;
+                          }
+                          showRestoreScaleBtn.value = false;
+                          final animController = AnimationController(
+                            vsync: this,
+                            duration: const Duration(milliseconds: 255),
+                          );
+                          final anim = animController.drive(
+                            Matrix4Tween(
+                              begin: _transformationController.value,
+                              end: Matrix4.identity(),
+                            ).chain(CurveTween(curve: Curves.easeOut)),
+                          );
+                          void listener() {
+                            _transformationController.value = anim.value;
+                          }
 
-                        animController.addListener(listener);
-                        await animController.forward(from: 0);
-                        animController
-                          ..removeListener(listener)
-                          ..dispose();
-                      },
-                      child: const Text('还原屏幕'),
+                          animController.addListener(listener);
+                          await animController.forward(from: 0);
+                          animController
+                            ..removeListener(listener)
+                            ..dispose();
+                        },
+                        child: const Text('还原屏幕'),
+                      ),
                     ),
-                  ),
-                )
-              : const SizedBox.shrink(),
+                  )
+                : const SizedBox.shrink();
+          },
         ),
 
         /// 进度条 live模式下禁用
@@ -1995,52 +2078,99 @@ class _PLVideoPlayerState extends State<PLVideoPlayer>
       height: maxHeight,
       color: widget.fill,
       child: Obx(
-        () => MouseInteractiveViewer(
-          scaleEnabled: !plPlayerController.controlsLock.value,
-          pointerSignalFallback: plPlayerController.enableScrollVolume
-              ? _onPointerSignal
-              : null,
-          onPointerPanZoomUpdate: _onPointerPanZoomUpdate,
-          onPointerPanZoomEnd: _onPointerPanZoomEnd,
-          onPointerDown: _onPointerDown,
-          onPointerUp: _onPointerUp,
-          onPointerCancel: _onPointerCancel,
-          onPanStart: _onPanStart,
-          onPanUpdate: _onPanUpdate,
-          onPanEnd: _onPanEnd,
-          onScaleUpdate: _onScaleUpdate,
-          scaleGestureRecognizer: _scaleGestureRecognizer,
-          panEnabled: false,
-          minScale: plPlayerController.enableShrinkVideoSize ? 0.75 : 1,
-          maxScale: 2.0,
-          boundaryMargin: plPlayerController.enableShrinkVideoSize
-              ? const .all(double.infinity)
-              : .zero,
-          panAxis: .aligned,
-          transformationController: _transformationController,
-          childKey: _videoKey,
-          child: RepaintBoundary(
-            key: _videoKey,
-            child: Obx(
-              () {
-                final videoFit = plPlayerController.videoFit.value;
-                return Transform.flip(
-                  flipX: plPlayerController.flipX.value,
-                  flipY: plPlayerController.flipY.value,
-                  child: FittedBox(
-                    fit: videoFit.boxFit,
-                    alignment: widget.alignment,
-                    child: SimpleVideo(
-                      controller: plPlayerController.videoController!,
-                      fill: widget.fill,
-                      aspectRatio: videoFit.aspectRatio,
+        () {
+          final isFramed = plPlayerController.videoFit.value.isCustomFramed;
+          return MouseInteractiveViewer(
+            scaleEnabled: !plPlayerController.controlsLock.value,
+            // [Custom Framed Zoom / 16:9及自定义画框居中消黑边缩放]
+            isCustomFramed: isFramed,
+            framedScale: plPlayerController.framedZoomScale.value,
+            onCustomFramedScale: (scale) {
+              // 缩放手势期间响应式更新内存值，不频繁写磁盘，保障 60/120fps 丝滑流畅度
+              plPlayerController.updateFramedZoomScale(scale, save: false);
+            },
+            onCustomFramedScaleEnd: () {
+              // 手势结束抬手时一次性持久化保存到 Hive 本地存储
+              plPlayerController.updateFramedZoomScale(
+                plPlayerController.framedZoomScale.value,
+                save: true,
+              );
+            },
+            pointerSignalFallback: plPlayerController.enableScrollVolume
+                ? _onPointerSignal
+                : null,
+            onPointerPanZoomUpdate: _onPointerPanZoomUpdate,
+            onPointerPanZoomEnd: _onPointerPanZoomEnd,
+            onPointerDown: _onPointerDown,
+            onPointerUp: _onPointerUp,
+            onPointerCancel: _onPointerCancel,
+            onPanStart: _onPanStart,
+            onPanUpdate: _onPanUpdate,
+            onPanEnd: _onPanEnd,
+            onScaleUpdate: _onScaleUpdate,
+            scaleGestureRecognizer: _scaleGestureRecognizer,
+            panEnabled: false,
+            minScale: plPlayerController.enableShrinkVideoSize ? 0.75 : 1,
+            maxScale: 2.0,
+            boundaryMargin: plPlayerController.enableShrinkVideoSize
+                ? const .all(double.infinity)
+                : .zero,
+            panAxis: .aligned,
+            transformationController: _transformationController,
+            childKey: _videoKey,
+            child: RepaintBoundary(
+              key: _videoKey,
+              child: Obx(
+                () {
+                  final videoFit = plPlayerController.videoFit.value;
+                  // [Custom Framed Zoom / 16:9及自定义画框居中消黑边缩放]
+                  // 当处于自定义定框模式时：
+                  // 1. AspectRatio 严格锁定画框比例（如 16:9 或 17.5:9），居中留出物理黑边，左右黑边零侵占
+                  // 2. ClipRect 物理防波堤硬切除溢出像素，把上下硬黑边切除
+                  // 3. Transform.scale 在画框内部等比放大画面，Alignment.center 禁止偏心漂移
+                  if (videoFit.isCustomFramed) {
+                    return Center(
+                      child: AspectRatio(
+                        aspectRatio: plPlayerController.customAspectRatio.value,
+                        child: ClipRect(
+                          child: Transform.scale(
+                            scale: plPlayerController.framedZoomScale.value,
+                            alignment: Alignment.center,
+                            child: Transform.flip(
+                              flipX: plPlayerController.flipX.value,
+                              flipY: plPlayerController.flipY.value,
+                              child: FittedBox(
+                                fit: BoxFit.contain,
+                                alignment: widget.alignment,
+                                child: SimpleVideo(
+                                  controller: plPlayerController.videoController!,
+                                  fill: widget.fill,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    );
+                  }
+                  return Transform.flip(
+                    flipX: plPlayerController.flipX.value,
+                    flipY: plPlayerController.flipY.value,
+                    child: FittedBox(
+                      fit: videoFit.boxFit,
+                      alignment: widget.alignment,
+                      child: SimpleVideo(
+                        controller: plPlayerController.videoController!,
+                        fill: widget.fill,
+                        aspectRatio: videoFit.aspectRatio,
+                      ),
                     ),
-                  ),
-                );
-              },
+                  );
+                },
+              ),
             ),
-          ),
-        ),
+          );
+        },
       ),
     );
   }

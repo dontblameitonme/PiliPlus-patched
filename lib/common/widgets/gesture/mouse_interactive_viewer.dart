@@ -42,6 +42,11 @@ class MouseInteractiveViewer extends StatefulWidget {
     required this.childKey,
     required this.child,
     required this.scaleGestureRecognizer,
+    // [Custom Framed Zoom / 16:9及自定义画框居中消黑边缩放]
+    this.isCustomFramed = false,
+    this.framedScale,
+    this.onCustomFramedScale,
+    this.onCustomFramedScaleEnd,
   }) : assert(minScale > 0),
        assert(interactionEndFrictionCoefficient > 0),
        assert(maxScale > 0),
@@ -73,6 +78,11 @@ class MouseInteractiveViewer extends StatefulWidget {
   final TransformationController transformationController;
   final GlobalKey childKey;
   final ScaleGestureRecognizer scaleGestureRecognizer;
+  // [Custom Framed Zoom / 16:9及自定义画框居中消黑边缩放]
+  final bool isCustomFramed;
+  final double? framedScale;
+  final ValueChanged<double>? onCustomFramedScale;
+  final VoidCallback? onCustomFramedScaleEnd;
 
   static const double _kDrag = 0.0000135;
 
@@ -93,6 +103,8 @@ class _MouseInteractiveViewerState extends State<MouseInteractiveViewer>
   Axis? _currentAxis;
   Offset? _referenceFocalPoint;
   double? _scaleStart;
+  // [Custom Framed Zoom] 画框缩放起始倍率
+  double? _framedScaleStart;
   double? _rotationStart = 0.0;
   double _currentRotation = 0.0;
   _GestureType? _gestureType;
@@ -288,6 +300,12 @@ class _MouseInteractiveViewerState extends State<MouseInteractiveViewer>
       return;
     }
 
+    // [Custom Framed Zoom] 定框消黑边模式下手势缩放初始化
+    if (widget.isCustomFramed) {
+      _framedScaleStart = widget.framedScale ?? 1.0;
+      return;
+    }
+
     if (_controller.isAnimating) {
       _controller
         ..stop()
@@ -315,6 +333,15 @@ class _MouseInteractiveViewerState extends State<MouseInteractiveViewer>
   void _onScaleUpdate(ScaleUpdateDetails details) {
     if (_isSinglePointer) {
       widget.onPanUpdate(details);
+      return;
+    }
+
+    // [Custom Framed Zoom] 定框消黑边模式：严格居中等比缩放 [1.0, 3.0]，屏蔽水平与垂直平移漂移
+    if (widget.isCustomFramed) {
+      if (_framedScaleStart != null) {
+        final newScale = (_framedScaleStart! * details.scale).clamp(1.0, 3.0);
+        widget.onCustomFramedScale?.call(newScale);
+      }
       return;
     }
 
@@ -409,6 +436,13 @@ class _MouseInteractiveViewerState extends State<MouseInteractiveViewer>
   void _onScaleEnd(ScaleEndDetails details) {
     if (_isSinglePointer) {
       widget.onPanEnd(details);
+      return;
+    }
+
+    // [Custom Framed Zoom] 定框消黑边模式手势结束
+    if (widget.isCustomFramed) {
+      _framedScaleStart = null;
+      widget.onCustomFramedScaleEnd?.call();
       return;
     }
 

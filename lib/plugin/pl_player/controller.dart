@@ -1331,6 +1331,43 @@ class PlPlayerController with BlockConfigMixin, AudioNormalizationMixin {
     });
   }
 
+  // [Custom Framed Zoom / 16:9及自定义画框居中消黑边缩放]
+  late final RxDouble customAspectRatio = Pref.customAspectRatioValue.obs;
+  late final RxString customAspectLabel = Pref.customAspectRatioLabel.obs;
+  late final RxDouble framedZoomScale = Pref.customAspectZoomScale.obs;
+
+  /// 保存并更新自定义比例
+  void updateCustomAspectRatio(double ratio, String label, {double? zoomScale}) {
+    customAspectRatio.value = ratio;
+    customAspectLabel.value = label;
+    video
+      ..put(VideoBoxKey.customAspectRatioValue, ratio)
+      ..put(VideoBoxKey.customAspectRatioLabel, label);
+
+    if (zoomScale != null) {
+      final clampedZoom = zoomScale.clamp(1.0, 3.0);
+      framedZoomScale.value = clampedZoom;
+      video.put(VideoBoxKey.customAspectZoomScale, clampedZoom);
+    }
+
+    // 切换为定框模式并生效
+    toggleVideoFit(VideoFitType.ratio_16x9);
+  }
+
+  /// 重置为标准 16:9
+  void resetCustomAspectRatio() {
+    updateCustomAspectRatio(16.0 / 9.0, '16:9', zoomScale: 1.0);
+  }
+
+  /// 更新画框消黑边缩放倍率并持久化
+  void updateFramedZoomScale(double scale, {bool save = true}) {
+    final clamped = scale.clamp(1.0, 3.0);
+    framedZoomScale.value = clamped;
+    if (save) {
+      video.put(VideoBoxKey.customAspectZoomScale, clamped);
+    }
+  }
+
   /// Toggle Change the videofit accordingly
   void toggleVideoFit(VideoFitType value) {
     _prefFit = videoFit.value = value;
