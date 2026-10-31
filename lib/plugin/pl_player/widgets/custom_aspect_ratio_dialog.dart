@@ -1,6 +1,6 @@
 // [PATCH 自定义画幅] 新增文件，上游没有。
 // - buildVideoFitMenuItems: 画面比例菜单项（播放器和直播间共用），长按“自定义”项打开设置弹窗
-// - showCustomAspectRatioDialog: 预设比例、宽:高输入（0.5~3.5）、默认缩放滑块（1.0~2.0）
+// - showCustomAspectRatioDialog: 预设比例、宽:高输入（0.5~3.5）；缩放改为在画面上双指捏合（全局保存）
 // 合并上游时，如果 VideoFitType 或比例菜单有改动，需要同步检查这里
 import 'package:PiliPlus/plugin/pl_player/controller.dart';
 import 'package:PiliPlus/plugin/pl_player/models/video_fit_type.dart';
@@ -20,9 +20,6 @@ const List<_AspectPreset> _kAspectPresets = [
 
 const double _kMinRatio = 0.5;
 const double _kMaxRatio = 3.5;
-const double _kMinZoom = 1.0;
-const double _kMaxZoom = 2.0;
-const double _kZoomStep = 0.05;
 
 /// 构建「画面比例」菜单项。
 ///
@@ -93,7 +90,6 @@ class CustomAspectRatioDialog extends StatefulWidget {
 class _CustomAspectRatioDialogState extends State<CustomAspectRatioDialog> {
   late final TextEditingController _widthCtr;
   late final TextEditingController _heightCtr;
-  late double _zoom;
 
   @override
   void initState() {
@@ -104,7 +100,6 @@ class _CustomAspectRatioDialogState extends State<CustomAspectRatioDialog> {
     );
     _widthCtr = TextEditingController(text: _fmt(w));
     _heightCtr = TextEditingController(text: _fmt(h));
-    _zoom = _snapZoom(widget.controller.defaultFramedZoomScale);
   }
 
   @override
@@ -112,11 +107,6 @@ class _CustomAspectRatioDialogState extends State<CustomAspectRatioDialog> {
     _widthCtr.dispose();
     _heightCtr.dispose();
     super.dispose();
-  }
-
-  static double _snapZoom(double value) {
-    final snapped = (value / _kZoomStep).roundToDouble() * _kZoomStep;
-    return snapped.clamp(_kMinZoom, _kMaxZoom);
   }
 
   static String _fmt(double v) {
@@ -178,7 +168,7 @@ class _CustomAspectRatioDialogState extends State<CustomAspectRatioDialog> {
     final r = _ratio;
     if (r == null || _errorText != null) return;
     final label = '${_fmt(_width!)}:${_fmt(_height!)}';
-    widget.controller.updateCustomAspectRatio(r, label, zoomScale: _zoom);
+    widget.controller.updateCustomAspectRatio(r, label);
     Navigator.of(context).pop();
     SmartDialog.showToast('画框比例已设为 $label');
   }
@@ -271,28 +261,7 @@ class _CustomAspectRatioDialogState extends State<CustomAspectRatioDialog> {
             ],
             const SizedBox(height: 16),
             Text(
-              '默认画面消黑边缩放 (Zoom)：${_zoom.toStringAsFixed(2)}x',
-              style: theme.textTheme.titleSmall,
-            ),
-            Row(
-              children: [
-                const Text('1.0x'),
-                Expanded(
-                  child: Slider(
-                    min: _kMinZoom,
-                    max: _kMaxZoom,
-                    divisions: ((_kMaxZoom - _kMinZoom) / _kZoomStep).round(),
-                    value: _zoom,
-                    label: '${_zoom.toStringAsFixed(2)}x',
-                    onChanged: (value) =>
-                        setState(() => _zoom = _snapZoom(value)),
-                  ),
-                ),
-                const Text('2.0x'),
-              ],
-            ),
-            Text(
-              '提示：17.5:9 配合 1.25x 放大是消除多数电影上下黑边的黄金方案',
+              '画面会等比铺满画框，画框外为纯黑；在画面上双指捏合可缩放，双击恢复铺满',
               style: theme.textTheme.bodySmall?.copyWith(
                 color: colorScheme.outline,
               ),

@@ -161,8 +161,9 @@ abstract final class SettingBoxKey {
       touchSlopH = 'touchSlopH',
       floatingNavBar = 'floatingNavBar',
       removeSafeArea = 'removeSafeArea',
-      // [PATCH UI-02]
-      fsAvoidCutout = 'fsAvoidCutout',
+          // [PATCH UI-02]
+          fsAvoidCutout =
+          'fsAvoidCutout',
       angleDegrees = 'angleDegrees',
       liveStream = 'liveStream',
       enableDocProvider = 'enableDocProvider',
@@ -286,6 +287,6 @@ abstract final class VideoBoxKey {
           customAspectRatioLabel =
           'customAspectRatioLabel',
           // 画框内消黑边默认缩放倍数，double，默认 1.0
-          customAspectZoomScale =
-          'customAspectZoomScale';
+          framedPinchScale =
+          'framedPinchScale';
 }

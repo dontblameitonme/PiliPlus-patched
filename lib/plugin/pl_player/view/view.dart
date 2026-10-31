@@ -270,7 +270,8 @@ class _PLVideoPlayerState extends State<PLVideoPlayer>
       if (fit.isCustomFramed) {
         // 定框模式下外框几何锁死：清除全屏视口缩放，避免侵占左右遮幅黑边
         _transformationController.value = Matrix4.identity();
-        showRestoreScaleBtn.value = false;
+        showRestoreScaleBtn.value =
+            plPlayerController.framedZoomScale.value != 1.0;
       }
     });
 
@@ -951,7 +952,7 @@ class _PLVideoPlayerState extends State<PLVideoPlayer>
   // [PATCH 自定义画幅] 画框模式下的手势缩放和复位动画
   bool get _isFramedMode => plPlayerController.videoFit.value.isCustomFramed;
 
-  /// 定框模式下的捏合缩放：仅在画框内部居中缩放，限制在 [1.0, 3.0]
+  /// 定框模式下的捏合缩放：仅在画框内部居中缩放，限制在 [0.5, 3.0]
   void _onFramedScale(double scale) {
     _framedZoomAnimController?.stop();
     plPlayerController.setFramedZoomScale(scale);
@@ -1168,8 +1169,8 @@ class _PLVideoPlayerState extends State<PLVideoPlayer>
       return;
     }
     // [PATCH 自定义画幅] 双击复原缩放，优先于暂停/播放
-    if (_isFramedMode && plPlayerController.framedZoomScale.value > 1.0) {
-      // 定框模式下处于放大状态时，双击平滑复原至 1.0x
+    if (_isFramedMode && plPlayerController.framedZoomScale.value != 1.0) {
+      // 定框模式下处于缩放状态时，双击平滑复原至 1.0x（铺满画框）
       showRestoreScaleBtn.value = false;
       _animateFramedZoomTo(1.0);
       return;
@@ -2108,7 +2109,7 @@ class _PLVideoPlayerState extends State<PLVideoPlayer>
             child: Obx(
               () {
                 final videoFit = plPlayerController.videoFit.value;
-                // [PATCH 自定义画幅] 画框渲染：Center > AspectRatio > ClipRect > Transform.scale > FittedBox
+                // [PATCH 自定义画幅] 画框渲染：Center > AspectRatio > ClipRect > Transform.scale > FittedBox(cover)
                 if (videoFit.isCustomFramed) {
                   return Transform.flip(
                     flipX: plPlayerController.flipX.value,
@@ -2120,10 +2121,11 @@ class _PLVideoPlayerState extends State<PLVideoPlayer>
                         // 2. 硬切除一切超出画框的像素（被推出去的硬编码黑边）
                         child: ClipRect(
                           child: Obx(
-                            // 3. 仅在画框内部严格居中等比缩放
+                            // 3. 视频等比铺满画框（cover），再按捏合倍数居中缩放
                             () => Transform.scale(
                               scale: plPlayerController.framedZoomScale.value,
                               child: FittedBox(
+                                fit: BoxFit.cover,
                                 child: SimpleVideo(
                                   controller:
                                       plPlayerController.videoController!,

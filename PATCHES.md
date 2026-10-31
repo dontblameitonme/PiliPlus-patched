@@ -23,10 +23,10 @@ git diff cb1773944 -- lib         # 和上游基线对比
 | 文件 | 说明 |
 | --- | --- |
 | `lib/plugin/pl_player/models/video_fit_type.dart` | `ratio_16x9` 标记为 `isCustomFramed`，作为“自定义画框”入口 |
-| `lib/utils/storage_key.dart` / `storage_pref.dart` | 新增 `customAspectRatioValue / Label / ZoomScale` 三个存储键，读取时校验 |
-| `lib/plugin/pl_player/controller.dart` | 画框比例、标签、缩放倍数（1.0~3.0）的状态；`updateCustomAspectRatio` / `resetCustomAspectRatio` / `videoFitDesc` |
-| `lib/plugin/pl_player/widgets/custom_aspect_ratio_dialog.dart` | **新文件**：比例菜单项构建、设置弹窗 |
-| `lib/plugin/pl_player/view/view.dart` | 画框渲染、手势缩放、双击/还原按钮复位缩放 |
+| `lib/utils/storage_key.dart` / `storage_pref.dart` | 新增 `customAspectRatioValue / customAspectRatioLabel / framedPinchScale` 三个存储键，读取时校验 |
+| `lib/plugin/pl_player/controller.dart` | 画框比例、标签、捏合缩放倍数（0.5~3.0，1.0=铺满画框，停止变化 400ms 后全局保存）的状态；`updateCustomAspectRatio` / `resetCustomAspectRatio` / `videoFitDesc` |
+| `lib/plugin/pl_player/widgets/custom_aspect_ratio_dialog.dart` | **新文件**：比例菜单项构建、设置弹窗（只设比例，缩放靠捏合） |
+| `lib/plugin/pl_player/view/view.dart` | 画框渲染（视频 `BoxFit.cover` 铺满画框、画框外纯黑）、双指捏合缩放（始终居中）、双击/还原按钮恢复铺满 |
 | `lib/common/widgets/gesture/mouse_interactive_viewer.dart` | 新增 `onExternalScale` / `externalScale` 外部缩放钩子 |
 | `lib/pages/live_room/widgets/bottom_control.dart` | 直播间比例菜单接入同一套逻辑 |
 

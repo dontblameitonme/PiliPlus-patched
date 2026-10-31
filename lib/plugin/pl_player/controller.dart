@@ -1346,11 +1346,8 @@ class PlPlayerController with BlockConfigMixin, AudioNormalizationMixin {
   void toggleVideoFit(VideoFitType value) {
     _prefFit = videoFit.value = value;
     video.put(VideoBoxKey.cacheVideoFit, value.index);
-    // [PATCH 自定义画幅] 切到画框模式时恢复默认缩放；下面的画框状态和方法都是新增的
-    if (value.isCustomFramed) {
-      // 进入定框模式时恢复为用户设定的默认消黑边缩放倍数
-      framedZoomScale.value = _defaultFramedZoomScale;
-    }
+    // [PATCH 自定义画幅] 下面的画框状态和方法都是新增的；
+    // 画框内缩放倍数全局保存，切换模式时沿用上次捏合的结果
   }
 
   /// 自定义画框比例（默认 16:9）
@@ -1359,32 +1356,33 @@ class PlPlayerController with BlockConfigMixin, AudioNormalizationMixin {
   /// 自定义画框标签文字（用于菜单动态展示）
   final RxString customAspectLabel = Pref.customAspectRatioLabel.obs;
 
-  /// 用户保存的默认画框内消黑边缩放倍数
-  double _defaultFramedZoomScale = Pref.customAspectZoomScale;
-  double get defaultFramedZoomScale => _defaultFramedZoomScale;
+  /// 画框内缩放倍数：1.0 = 视频等比铺满画框（超出部分裁掉），
+  /// 由捏合手势调整，全局持久化
+  final RxDouble framedZoomScale = Pref.framedPinchScale.obs;
+  Timer? _framedZoomSaveTimer;
 
-  /// 当前画框内消黑边缩放倍数（捏合手势实时修改，不持久化）
-  late final RxDouble framedZoomScale = _defaultFramedZoomScale.obs;
-
-  static const double minFramedZoomScale = 1.0;
+  static const double minFramedZoomScale = 0.5;
   static const double maxFramedZoomScale = 3.0;
 
   /// 画面比例菜单中展示的文字
   String videoFitDesc(VideoFitType fit) =>
       fit.isCustomFramed ? customAspectLabel.value : fit.desc;
 
-  /// 设置画框内缩放倍数（捏合手势），严格限制在 [1.0, 3.0]
+  /// 设置画框内缩放倍数（捏合手势），限制在 [0.5, 3.0]，停止变化后写入存储
   void setFramedZoomScale(double scale) {
     if (!scale.isFinite) return;
-    framedZoomScale.value = scale.clamp(minFramedZoomScale, maxFramedZoomScale);
+    final value = scale.clamp(minFramedZoomScale, maxFramedZoomScale);
+    if (value == framedZoomScale.value) return;
+    framedZoomScale.value = value;
+    _framedZoomSaveTimer?.cancel();
+    _framedZoomSaveTimer = Timer(
+      const Duration(milliseconds: 400),
+      () => video.put(VideoBoxKey.framedPinchScale, framedZoomScale.value),
+    );
   }
 
   /// 保存并更新自定义比例
-  void updateCustomAspectRatio(
-    double ratio,
-    String label, {
-    double? zoomScale,
-  }) {
+  void updateCustomAspectRatio(double ratio, String label) {
     if (!ratio.isFinite || ratio < 0.5 || ratio > 3.5) return;
     customAspectRatio.value = ratio;
     customAspectLabel.value = label;
@@ -1392,21 +1390,13 @@ class PlPlayerController with BlockConfigMixin, AudioNormalizationMixin {
       ..put(VideoBoxKey.customAspectRatioValue, ratio)
       ..put(VideoBoxKey.customAspectRatioLabel, label);
 
-    if (zoomScale != null && zoomScale.isFinite) {
-      _defaultFramedZoomScale = zoomScale.clamp(
-        minFramedZoomScale,
-        maxFramedZoomScale,
-      );
-      video.put(VideoBoxKey.customAspectZoomScale, _defaultFramedZoomScale);
-    }
-
     // 切换为定框模式并生效
     toggleVideoFit(VideoFitType.ratio_16x9);
   }
 
   /// 重置为标准 16:9
   void resetCustomAspectRatio() {
-    updateCustomAspectRatio(16.0 / 9.0, '16:9', zoomScale: 1.0);
+    updateCustomAspectRatio(16.0 / 9.0, '16:9');
   }
 
   /// 读取fit

@@ -938,10 +938,11 @@ abstract final class Pref {
     return value is String && value.isNotEmpty ? value : '16:9';
   }
 
-  static double get customAspectZoomScale {
-    final value = _video.get(VideoBoxKey.customAspectZoomScale);
+  // 画框内捏合缩放倍数（1.0 = 铺满画框）
+  static double get framedPinchScale {
+    final value = _video.get(VideoBoxKey.framedPinchScale);
     if (value is num && value.isFinite) {
-      return value.toDouble().clamp(1.0, 3.0);
+      return value.toDouble().clamp(0.5, 3.0);
     }
     return 1.0;
   }
