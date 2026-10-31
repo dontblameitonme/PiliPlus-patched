@@ -40,6 +40,7 @@ import 'package:PiliPlus/utils/reply_scheme_helper.dart';
 import 'package:PiliPlus/utils/request_utils.dart';
 import 'package:PiliPlus/utils/share_utils.dart';
 import 'package:flutter/foundation.dart' show kDebugMode;
+import 'package:flutter/rendering.dart' show ScrollCacheExtent;
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:get/get.dart';
 import 'package:material_ui/material_ui.dart';
@@ -341,6 +342,8 @@ class _DynamicDetailPageState extends CommonDynPageMultiState<DynamicDetailPage>
 
   Widget _buildTabBody([bool isPortrait = true]) {
     Widget reply = CustomScrollView(
+      // [PATCH PERF-22] 视口外多预构建半屏，快速滑动时少出空白和卡顿
+      scrollCacheExtent: const ScrollCacheExtent.viewport(0.5),
       primary: true,
       key: const PageStorageKey(DynType.reply),
       physics: ReloadScrollPhysics(
@@ -446,6 +449,8 @@ class _DynamicDetailPageState extends CommonDynPageMultiState<DynamicDetailPage>
         Expanded(
           flex: flex,
           child: CustomScrollView(
+            // [PATCH PERF-22] 视口外多预构建半屏，快速滑动时少出空白和卡顿
+            scrollCacheExtent: const ScrollCacheExtent.viewport(0.5),
             primary: true,
             slivers: [
               SliverPadding(

@@ -73,12 +73,15 @@ git diff cb1773944 -- lib         # 和上游基线对比
 | PERF-12 | 主评论区 SuperSliverList | ✅（动态卡片 ValueKey 没加） |
 | PERF-13 | AppBarAni 隐藏时 Offstage；迷你进度条隐藏时不构建 | ✅ |
 | PERF-14 | 直播公屏表情正则缓存；滚到底改为尾缘触发 | ✅ |
-| PERF-15 | 内存不足时清空图片缓存 | ✅ 部分（推荐页圆角裁剪保留） |
+| PERF-15 | 内存不足时清空图片缓存；**按显示尺寸请求 CDN 缩略图**（`ImageUtils.thumbnailUrl` / `NetworkImgLayer`，尺寸按 40px 向上取整，gif 除外，设置 → 外观 →“按显示尺寸加载图片”，默认开） | ✅（推荐页圆角裁剪保留） |
 | PERF-16 | 弹幕 100ms 分桶补齐 | ✅ |
 | PERF-17 | 下载/离线页不再在 build 里调用 existsSync | ✅ |
-| PERF-18 | Impeller | ⛔ 只是建议，没改 |
+| PERF-18 | Android Impeller 开关（设置 → 外观 →“启用 Impeller 渲染（实验性）”，默认关，重启生效）。Dart 端写入标记文件 `<filesDir>/enable_impeller`，`MainActivity.onCreate` 在引擎创建前带 `--enable-impeller=true` 初始化 FlutterLoader | ✅ |
 | PERF-19 | 在线人数只在播放时轮询 | ✅ |
 | PERF-20 | `_round` 数值化；挂件尺寸取整 | ✅ |
+| PERF-21 | 新增 `DeferUntilRouteSettled`：页面进场动画结束后再构建视频页的相关推荐网格、动态/专栏/音乐等详情页的评论列表；播放器底部控制栏（`AppBarAni(lazy: true)`）首次显示时才构建 | ✅ |
+| PERF-22 | 视频评论区、楼中楼、推荐流、动态流、动态详情的 `scrollCacheExtent` 设为 0.5 屏 | ✅ |
+| PERF-23 | 评论正文 InlineSpan 按 (Content, Element, ColorScheme) 缓存，加载更多刷新列表时不再重新排版可见评论 | ✅ |
 
 ## 四、界面调整
 

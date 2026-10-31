@@ -1,3 +1,4 @@
+import 'package:PiliPlus/common/widgets/defer_until_route_settled.dart';
 import 'package:PiliPlus/common/widgets/loading_widget/http_error.dart';
 import 'package:PiliPlus/common/widgets/video_card/video_card_h.dart';
 import 'package:PiliPlus/http/loading_state.dart';
@@ -31,7 +32,12 @@ class _RelatedVideoPanelState extends State<RelatedVideoPanel> with GridMixin {
   Widget build(BuildContext context) {
     return SliverPadding(
       padding: const EdgeInsets.only(top: 7, bottom: 100),
-      sliver: Obx(() => _buildBody(_relatedController.loadingState.value)),
+      // [PATCH PERF-21] 进场动画结束后再构建推荐网格，转场期间显示骨架屏
+      sliver: DeferUntilRouteSettled(
+        placeholder: gridSkeleton,
+        builder: (_) =>
+            Obx(() => _buildBody(_relatedController.loadingState.value)),
+      ),
     );
   }
 

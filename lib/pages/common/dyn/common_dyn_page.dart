@@ -2,6 +2,7 @@ import 'package:PiliPlus/common/skeleton/video_reply.dart';
 import 'package:PiliPlus/common/sliver_single_child_delegate.dart';
 import 'package:PiliPlus/common/style.dart';
 import 'package:PiliPlus/common/widgets/custom_icon.dart';
+import 'package:PiliPlus/common/widgets/defer_until_route_settled.dart';
 import 'package:PiliPlus/common/widgets/loading_widget/http_error.dart';
 import 'package:PiliPlus/common/widgets/scaffold/mini_scaffold.dart';
 import 'package:PiliPlus/common/widgets/scaffold/simple_scaffold.dart';
@@ -179,16 +180,26 @@ mixin CommonDynPageMixin<T extends StatefulWidget>
     );
   }
 
-  Widget replyList(LoadingState<List<ReplyInfo>?> loadingState) {
+  static const _replySkeleton = SliverPrototypeExtentList(
+    prototypeItem: VideoReplySkeleton(),
+    delegate: SliverSingleChildDelegate(
+      count: 12,
+      child: VideoReplySkeleton(),
+    ),
+  );
+
+  /// [PATCH PERF-21] 动态、专栏、音乐等详情页的评论列表等进场动画结束后再构建，
+  /// 转场期间显示骨架屏
+  Widget replyList(LoadingState<List<ReplyInfo>?> loadingState) =>
+      DeferUntilRouteSettled(
+        placeholder: _replySkeleton,
+        builder: (_) => _replyList(loadingState),
+      );
+
+  Widget _replyList(LoadingState<List<ReplyInfo>?> loadingState) {
     switch (loadingState) {
       case Loading():
-        return const SliverPrototypeExtentList(
-          prototypeItem: VideoReplySkeleton(),
-          delegate: SliverSingleChildDelegate(
-            count: 12,
-            child: VideoReplySkeleton(),
-          ),
-        );
+        return _replySkeleton;
       case Success(:final response):
         if (response != null && response.isNotEmpty) {
           var count = response.length + 1;

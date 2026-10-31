@@ -11,6 +11,7 @@ import 'package:PiliPlus/pages/dynamics_tab/controller.dart';
 import 'package:PiliPlus/utils/extension/get_ext.dart';
 import 'package:PiliPlus/utils/global_data.dart';
 import 'package:PiliPlus/utils/waterfall.dart';
+import 'package:flutter/rendering.dart' show ScrollCacheExtent;
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import 'package:get/get.dart';
 import 'package:material_ui/material_ui.dart';
@@ -52,6 +53,8 @@ class _DynamicsTabPageState extends State<DynamicsTabPage>
     return refreshIndicator(
       onRefresh: onRefresh,
       child: CustomScrollView(
+        // [PATCH PERF-22] 视口外多预构建半屏，快速滑动时少出空白和卡顿
+        scrollCacheExtent: const ScrollCacheExtent.viewport(0.5),
         physics: const AlwaysScrollableScrollPhysics(),
         controller: controller.scrollController,
         slivers: [

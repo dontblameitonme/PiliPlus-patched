@@ -1654,6 +1654,8 @@ class _PLVideoPlayerState extends State<PLVideoPlayer>
                   ),
                   AppBarAni(
                     isTop: false,
+                    // [PATCH PERF-21] 底部控制栏首次显示时才构建
+                    lazy: true,
                     controller: _animationController,
                     isFullScreen: isFullScreen,
                     removeSafeArea: plPlayerController.removeSafeArea,

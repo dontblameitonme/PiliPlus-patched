@@ -8,6 +8,7 @@ import 'package:PiliPlus/http/loading_state.dart';
 import 'package:PiliPlus/pages/rcmd/controller.dart';
 import 'package:PiliPlus/utils/grid.dart';
 import 'package:PiliPlus/utils/storage_pref.dart';
+import 'package:flutter/rendering.dart' show ScrollCacheExtent;
 import 'package:get/get.dart';
 import 'package:material_ui/material_ui.dart';
 
@@ -36,6 +37,8 @@ class _RcmdPageState extends State<RcmdPage>
       child: refreshIndicator(
         onRefresh: controller.onRefresh,
         child: CustomScrollView(
+          // [PATCH PERF-22] 视口外多预构建半屏，快速滑动时少出空白和卡顿
+          scrollCacheExtent: const ScrollCacheExtent.viewport(0.5),
           controller: controller.scrollController,
           physics: const AlwaysScrollableScrollPhysics(),
           slivers: [

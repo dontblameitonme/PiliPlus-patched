@@ -155,6 +155,14 @@ abstract final class Pref {
   static int get picQuality =>
       _setting.get(SettingBoxKey.defaultPicQa, defaultValue: 10);
 
+  // [PATCH PERF-15]
+  static bool get sizedThumbnail =>
+      _setting.get(SettingBoxKey.sizedThumbnail, defaultValue: true);
+
+  // [PATCH PERF-18]
+  static bool get enableImpeller =>
+      _setting.get(SettingBoxKey.enableImpeller, defaultValue: false);
+
   static DynamicBadgeMode get dynamicBadgeType =>
       DynamicBadgeMode.values[_setting.get(
         SettingBoxKey.dynamicBadgeMode,

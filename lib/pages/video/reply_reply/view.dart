@@ -21,6 +21,7 @@ import 'package:PiliPlus/utils/num_utils.dart';
 import 'package:PiliPlus/utils/utils.dart';
 import 'package:extended_nested_scroll_view/extended_nested_scroll_view.dart';
 import 'package:fixnum/fixnum.dart' show Int64;
+import 'package:flutter/rendering.dart' show ScrollCacheExtent;
 import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
 import 'package:get/get.dart';
 import 'package:material_ui/material_ui.dart';
@@ -195,6 +196,8 @@ class _VideoReplyReplyPanelState extends State<VideoReplyReplyPanel>
       onRefresh: controller.onRefresh,
       isClampingScrollPhysics: widget.isNested,
       child: CustomScrollView(
+        // [PATCH PERF-22] 视口外多预构建半屏，快速滑动时少出空白和卡顿
+        scrollCacheExtent: const ScrollCacheExtent.viewport(0.5),
         key: ValueKey(scrollController.hashCode),
         controller: scrollController,
         physics: const AlwaysScrollableScrollPhysics(),

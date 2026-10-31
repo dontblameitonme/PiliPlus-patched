@@ -72,7 +72,13 @@ class NetworkImgLayer extends StatelessWidget {
     }
     return CachedNetworkImage(
       gaplessPlayback: true,
-      imageUrl: ImageUtils.thumbnailUrl(src, quality),
+      // [PATCH PERF-15] 把解码尺寸同时作为 CDN 缩略图尺寸
+      imageUrl: ImageUtils.thumbnailUrl(
+        src,
+        quality,
+        memCacheWidth,
+        memCacheHeight,
+      ),
       width: width,
       height: height,
       memCacheWidth: memCacheWidth,

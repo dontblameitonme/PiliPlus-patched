@@ -210,7 +210,22 @@ abstract final class ImageUtils {
     r'(@(\d+[a-z]_?)*)(\..*)?$',
     caseSensitive: false,
   );
-  static String thumbnailUrl(String? src, [int maxQuality = 1]) {
+
+  /// [PATCH PERF-15] 按显示尺寸请求 CDN 缩略图的步长（像素）。
+  /// 尺寸向上取整到步长的整数倍，让相近尺寸复用同一份 CDN/磁盘缓存
+  static const int _sizeStep = 40;
+  static int _bucket(int v) => ((v + _sizeStep - 1) ~/ _sizeStep) * _sizeStep;
+
+  /// [PATCH PERF-15] 是否按显示尺寸请求缩略图（设置项，可关闭）
+  static bool sizedThumbnail = Pref.sizedThumbnail;
+
+  static String thumbnailUrl(
+    String? src, [
+    int maxQuality = 1,
+    // [PATCH PERF-15] 目标物理像素宽/高（二选一，不传则保持上游行为）
+    int? width,
+    int? height,
+  ]) {
     if (src != null && maxQuality != 100) {
       maxQuality = math.max(maxQuality, GlobalData().imgQuality);
       bool hasMatch = false;
@@ -226,7 +241,17 @@ abstract final class ImageUtils {
         },
       );
       if (!hasMatch) {
-        src += '@${maxQuality}q.webp';
+        // [PATCH PERF-15] 原图链接（无 @ 参数）且已知显示尺寸时，让 CDN 直接
+        // 返回对应尺寸的缩略图，减少下载量和解码耗时。gif 不处理，保留动图
+        String size = '';
+        if (sizedThumbnail && !src.toLowerCase().endsWith('.gif')) {
+          if (width != null && width > 0) {
+            size = '${_bucket(width)}w_';
+          } else if (height != null && height > 0) {
+            size = '${_bucket(height)}h_';
+          }
+        }
+        src += '@$size${maxQuality}q.webp';
       }
     }
     return src.http2https;

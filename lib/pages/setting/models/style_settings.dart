@@ -37,6 +37,7 @@ import 'package:PiliPlus/utils/extension/get_ext.dart';
 import 'package:PiliPlus/utils/extension/num_ext.dart';
 import 'package:PiliPlus/utils/extension/theme_ext.dart';
 import 'package:PiliPlus/utils/global_data.dart';
+import 'package:PiliPlus/utils/image_utils.dart';
 import 'package:PiliPlus/utils/path_utils.dart';
 import 'package:PiliPlus/utils/platform_utils.dart';
 import 'package:PiliPlus/utils/storage.dart';
@@ -294,6 +295,26 @@ List<SettingsModel> get styleSettings => [
       style: theme.textTheme.titleSmall,
     ),
   ),
+  // [PATCH PERF-15] 按显示尺寸请求 CDN 缩略图
+  SwitchModel(
+    title: '按显示尺寸加载图片',
+    subtitle: '让服务器直接返回与显示尺寸匹配的缩略图，滑动更流畅、更省流量',
+    leading: const Icon(Icons.photo_size_select_large_outlined),
+    setKey: SettingBoxKey.sizedThumbnail,
+    defaultVal: true,
+    onChanged: (value) => ImageUtils.sizedThumbnail = value,
+  ),
+  // [PATCH PERF-18] Android 启用 Impeller 渲染引擎（实验性，默认关闭）
+  if (Platform.isAndroid)
+    const SwitchModel(
+      title: '启用 Impeller 渲染（实验性）',
+      subtitle: '可减少首次动画卡顿；如出现黑屏、花屏或画中画异常请关闭',
+      leading: Icon(Icons.speed_outlined),
+      setKey: SettingBoxKey.enableImpeller,
+      defaultVal: false,
+      needReboot: true,
+      onChanged: setImpellerMarker,
+    ),
   NormalModel(
     onTap: (context, setState) => _showQualityDialog(
       context: context,
@@ -949,4 +970,17 @@ Future<void> _showMemberTabDialog(
     await GStorage.setting.put(SettingBoxKey.memberTab, res.index);
     setState();
   }
+}
+
+/// [PATCH PERF-18] 原生层（MainActivity）在引擎初始化前读取这个标记文件，
+/// 决定是否给引擎加 `--enable-impeller=true`。Hive 在原生层读不到，所以用文件传递
+void setImpellerMarker(bool enable) {
+  try {
+    final file = File(path.join(appSupportDirPath, 'enable_impeller'));
+    if (enable) {
+      file.writeAsStringSync('1');
+    } else if (file.existsSync()) {
+      file.deleteSync();
+    }
+  } catch (_) {}
 }

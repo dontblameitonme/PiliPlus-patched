@@ -14,6 +14,7 @@ import 'package:PiliPlus/pages/common/reply/vote/reply_vote_item.dart';
 import 'package:PiliPlus/pages/video/reply/controller.dart';
 import 'package:PiliPlus/pages/video/reply/widgets/reply_item_grpc.dart';
 import 'package:PiliPlus/utils/feed_back.dart';
+import 'package:flutter/rendering.dart' show ScrollCacheExtent;
 import 'package:get/get.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:super_sliver_list/super_sliver_list.dart';
@@ -76,6 +77,8 @@ class _VideoReplyPanelState extends State<VideoReplyPanel>
         isClampingScrollPhysics: widget.isNested,
         child: ScaffoldLayout(
           body: CustomScrollView(
+            // [PATCH PERF-22] 视口外多预构建半屏，快速滑动时少出空白和卡顿
+            scrollCacheExtent: const ScrollCacheExtent.viewport(0.5),
             controller: widget.isNested ? null : controller.scrollController,
             physics: const AlwaysScrollableScrollPhysics(),
             key: const PageStorageKey(_VideoReplyPanelState),

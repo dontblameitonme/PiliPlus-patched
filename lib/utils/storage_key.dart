@@ -12,6 +12,12 @@ abstract final class SettingBoxKey {
       preferCodecsCellular = 'preferCodecsCellular',
       defaultToastOp = 'defaultToastOp',
       defaultPicQa = 'defaultPicQa',
+          // [PATCH PERF-15] 按显示尺寸请求 CDN 缩略图
+          sizedThumbnail =
+          'sizedThumbnail',
+          // [PATCH PERF-18] Android 启用 Impeller 渲染（重启生效）
+          enableImpeller =
+          'enableImpeller',
       enableHA = 'enableHA',
       audioOutput = 'audioOutput',
       bufferSize = 'bufferSize',

@@ -401,7 +401,7 @@ class ReplyItemGrpc extends StatelessWidget {
                   ),
                   const TextSpan(text: ' '),
                 ],
-                _buildMessage(
+                _cachedMessage(
                   context,
                   colorScheme,
                   replyControl.showTranslation
@@ -752,6 +752,34 @@ class ReplyItemGrpc extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  /// [PATCH PERF-23] 缓存评论正文的 InlineSpan。
+  /// 加载更多时 loadingState.refresh() 会重建所有可见评论；复用同一个 span 对象后，
+  /// RenderParagraph 判断文本相同，就会跳过重新排版。
+  /// 缓存键是 (context, colorScheme)：span 里的点击回调捕获了 context，元素换了或主题变了都要重建
+  /// context 用 WeakReference 保存，避免缓存让已销毁的 Element 无法回收
+  static final Expando<(WeakReference<BuildContext>, ColorScheme, InlineSpan)>
+  _messageCache =
+      Expando<(WeakReference<BuildContext>, ColorScheme, InlineSpan)>(
+        'replyMessage',
+      );
+
+  InlineSpan _cachedMessage(
+    BuildContext context,
+    ColorScheme colorScheme,
+    Content content,
+    ReplyControl replyControl,
+  ) {
+    final cached = _messageCache[content];
+    if (cached != null &&
+        identical(cached.$1.target, context) &&
+        identical(cached.$2, colorScheme)) {
+      return cached.$3;
+    }
+    final span = _buildMessage(context, colorScheme, content, replyControl);
+    _messageCache[content] = (WeakReference(context), colorScheme, span);
+    return span;
   }
 
   InlineSpan _buildMessage(

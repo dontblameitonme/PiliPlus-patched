@@ -1,7 +1,7 @@
 import 'package:PiliPlus/common/widgets/view_safe_area.dart';
 import 'package:material_ui/material_ui.dart';
 
-class AppBarAni extends StatelessWidget {
+class AppBarAni extends StatefulWidget {
   const AppBarAni({
     super.key,
     required this.child,
@@ -9,7 +9,12 @@ class AppBarAni extends StatelessWidget {
     required this.isTop,
     required this.isFullScreen,
     required this.removeSafeArea,
+    this.lazy = false,
   });
+
+  /// [PATCH PERF-21] 为 true 时，第一次显示控制栏之前不构建 [child]，
+  /// 减少打开视频页第一帧要构建的控件数量。用于底部控制栏
+  final bool lazy;
 
   final Widget child;
   final AnimationController controller;
@@ -48,24 +53,40 @@ class AppBarAni extends StatelessWidget {
   );
 
   @override
+  State<AppBarAni> createState() => _AppBarAniState();
+}
+
+class _AppBarAniState extends State<AppBarAni> {
+  bool _hasShown = false;
+
+  @override
   Widget build(BuildContext context) {
     // [PATCH PERF-13] skip painting the bar while it is fully hidden.
     return AnimatedBuilder(
-      animation: controller,
-      builder: (context, child) =>
-          Offstage(offstage: controller.isDismissed, child: child),
+      animation: widget.controller,
+      builder: (context, child) {
+        final dismissed = widget.controller.isDismissed;
+        if (!dismissed) _hasShown = true;
+        // [PATCH PERF-21] 还没显示过的懒加载控制栏先用空盒占位
+        if (widget.lazy && !_hasShown) return const SizedBox.shrink();
+        return Offstage(offstage: dismissed, child: child);
+      },
       child: SlideTransition(
-        position: controller.drive(isTop ? _topPos : _bottomPos),
+        position: widget.controller.drive(
+          widget.isTop ? AppBarAni._topPos : AppBarAni._bottomPos,
+        ),
         child: DecoratedBox(
           decoration: BoxDecoration(
-            gradient: isTop ? _topDecoration : _bottomDecoration,
+            gradient: widget.isTop
+                ? AppBarAni._topDecoration
+                : AppBarAni._bottomDecoration,
           ),
-          child: removeSafeArea
-              ? child
+          child: widget.removeSafeArea
+              ? widget.child
               : ViewSafeArea(
-                  left: isFullScreen,
-                  right: isFullScreen,
-                  child: child,
+                  left: widget.isFullScreen,
+                  right: widget.isFullScreen,
+                  child: widget.child,
                 ),
         ),
       ),
