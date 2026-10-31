@@ -458,13 +458,18 @@ class _UgcIntroPanelState extends State<UgcIntroPanel> {
     UgcIntroController introController,
     VideoStat? stat,
   ) {
+    // [PATCH UI-03] 视觉对齐：两端对齐 (MainAxisAlignment.spaceBetween)，
+    // 首项（点赞）左侧与尾项（分享）右侧分别贴合左右 safeSpace，与上方标题、UP 信息及下方推荐流在视觉上左右对齐
     return SizedBox(
       height: 48,
       child: Row(
-        crossAxisAlignment: .start,
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Obx(
             () => ActionItem(
+              expand: false,
+              showText: true,
               animation: introController.tripleAnimation,
               icon: const Icon(FontAwesomeIcons.thumbsUp),
               selectIcon: const Icon(FontAwesomeIcons.solidThumbsUp),
@@ -477,6 +482,8 @@ class _UgcIntroPanelState extends State<UgcIntroPanel> {
           ),
           Obx(
             () => ActionItem(
+              expand: false,
+              showText: true,
               icon: const Icon(FontAwesomeIcons.thumbsDown),
               selectIcon: const Icon(FontAwesomeIcons.solidThumbsDown),
               onTap: () => introController.handleAction(
@@ -489,6 +496,8 @@ class _UgcIntroPanelState extends State<UgcIntroPanel> {
           ),
           Obx(
             () => ActionItem(
+              expand: false,
+              showText: true,
               animation: introController.tripleAnimation,
               icon: const Icon(FontAwesomeIcons.b),
               selectIcon: const Icon(FontAwesomeIcons.b),
@@ -500,6 +509,8 @@ class _UgcIntroPanelState extends State<UgcIntroPanel> {
           ),
           Obx(
             () => ActionItem(
+              expand: false,
+              showText: true,
               animation: introController.tripleAnimation,
               icon: const Icon(FontAwesomeIcons.star),
               selectIcon: const Icon(FontAwesomeIcons.solidStar),
@@ -518,6 +529,8 @@ class _UgcIntroPanelState extends State<UgcIntroPanel> {
           // onTap: () => videoDetailCtr.onDownload(context), text: '缓存')
           Obx(
             () => ActionItem(
+              expand: false,
+              showText: true,
               icon: const Icon(FontAwesomeIcons.clock),
               selectIcon: const Icon(FontAwesomeIcons.solidClock),
               onTap: () =>
@@ -528,6 +541,8 @@ class _UgcIntroPanelState extends State<UgcIntroPanel> {
             ),
           ),
           ActionItem(
+            expand: false,
+            showText: true,
             icon: const Icon(FontAwesomeIcons.shareFromSquare),
             onTap: () => introController.actionShareVideo(context),
             selectStatus: false,

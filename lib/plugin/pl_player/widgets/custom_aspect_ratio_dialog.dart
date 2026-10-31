@@ -90,10 +90,12 @@ class CustomAspectRatioDialog extends StatefulWidget {
 class _CustomAspectRatioDialogState extends State<CustomAspectRatioDialog> {
   late final TextEditingController _widthCtr;
   late final TextEditingController _heightCtr;
+  late bool _rememberVideoFit;
 
   @override
   void initState() {
     super.initState();
+    _rememberVideoFit = widget.controller.rememberVideoFit.value;
     final (w, h) = _parseLabel(
       widget.controller.customAspectLabel.value,
       widget.controller.customAspectRatio.value,
@@ -160,8 +162,9 @@ class _CustomAspectRatioDialogState extends State<CustomAspectRatioDialog> {
 
   void _resetDefault() {
     widget.controller.resetCustomAspectRatio();
+    widget.controller.setRememberVideoFit(false);
     Navigator.of(context).pop();
-    SmartDialog.showToast('画框比例已恢复为 16:9');
+    SmartDialog.showToast('已恢复默认设置（16:9，打开新视频使用默认比例）');
   }
 
   void _save() {
@@ -169,6 +172,7 @@ class _CustomAspectRatioDialogState extends State<CustomAspectRatioDialog> {
     if (r == null || _errorText != null) return;
     final label = '${_fmt(_width!)}:${_fmt(_height!)}';
     widget.controller.updateCustomAspectRatio(r, label);
+    widget.controller.setRememberVideoFit(_rememberVideoFit);
     Navigator.of(context).pop();
     SmartDialog.showToast('画框比例已设为 $label');
   }
@@ -259,6 +263,25 @@ class _CustomAspectRatioDialogState extends State<CustomAspectRatioDialog> {
                 style: TextStyle(color: colorScheme.error, fontSize: 12),
               ),
             ],
+            const SizedBox(height: 12),
+            // [PATCH 自定义画幅] 保持上次使用比例开关（关：打开新视频默认使用“默认”比例；开：保持上次选择的比例）
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              title: const Text('保持上次使用的画面比例'),
+              subtitle: Text(
+                _rememberVideoFit
+                    ? '已开启：打开新视频将沿用上次选择的比例'
+                    : '已关闭：打开新视频默认选择“默认”比例',
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: colorScheme.outline,
+                ),
+              ),
+              value: _rememberVideoFit,
+              onChanged: (val) {
+                setState(() => _rememberVideoFit = val);
+                widget.controller.setRememberVideoFit(val);
+              },
+            ),
             const SizedBox(height: 16),
             Text(
               '画面会等比铺满画框，画框外为纯黑；在画面上双指捏合可缩放，双击恢复铺满',

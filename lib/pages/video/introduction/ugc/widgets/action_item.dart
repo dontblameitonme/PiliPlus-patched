@@ -14,6 +14,8 @@ class ActionItem extends StatelessWidget {
     this.selectStatus = false,
     required this.semanticsLabel,
     this.expand = true,
+    // [PATCH UI-03] 允许在非 expand 模式下（如 spaceBetween）显示文字
+    this.showText,
     this.animation,
     this.onStartTriple,
     this.onCancelTriple,
@@ -28,6 +30,7 @@ class ActionItem extends StatelessWidget {
   final bool selectStatus;
   final String semanticsLabel;
   final bool expand;
+  final bool? showText;
   final Animation<double>? animation;
   final VoidCallback? onStartTriple;
   final void Function([bool])? onCancelTriple;
@@ -76,9 +79,10 @@ class ActionItem extends StatelessWidget {
         onTapDown: _isThumbsUp ? (_) => onStartTriple!() : null,
         onTapUp: _isThumbsUp ? (_) => onCancelTriple!(true) : null,
         onTapCancel: _isThumbsUp ? onCancelTriple : null,
-        child: expand
+        child: (showText ?? expand)
             ? Column(
                 mainAxisAlignment: MainAxisAlignment.center,
+                mainAxisSize: MainAxisSize.min,
                 children: [child, _buildText(theme)],
               )
             : child,

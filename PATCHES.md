@@ -23,9 +23,9 @@ git diff cb1773944 -- lib         # 和上游基线对比
 | 文件 | 说明 |
 | --- | --- |
 | `lib/plugin/pl_player/models/video_fit_type.dart` | `ratio_16x9` 标记为 `isCustomFramed`，作为“自定义画框”入口 |
-| `lib/utils/storage_key.dart` / `storage_pref.dart` | 新增 `customAspectRatioValue / customAspectRatioLabel / framedPinchScale` 三个存储键，读取时校验 |
-| `lib/plugin/pl_player/controller.dart` | 画框比例、标签、捏合缩放倍数（0.5~3.0，1.0=铺满画框，停止变化 400ms 后全局保存）的状态；`updateCustomAspectRatio` / `resetCustomAspectRatio` / `videoFitDesc` |
-| `lib/plugin/pl_player/widgets/custom_aspect_ratio_dialog.dart` | **新文件**：比例菜单项构建、设置弹窗（只设比例，缩放靠捏合） |
+| `lib/utils/storage_key.dart` / `storage_pref.dart` | 新增 `customAspectRatioValue / customAspectRatioLabel / framedPinchScale / rememberVideoFit` 存储键，读取时校验 |
+| `lib/plugin/pl_player/controller.dart` | 画框比例、标签、捏合缩放倍数（0.5~3.0，1.0=铺满画框，停止变化 400ms 后全局保存）的状态；`_initVideoFit` 默认重置为 contain（可配记忆）；`updateCustomAspectRatio` / `resetCustomAspectRatio` / `videoFitDesc` |
+| `lib/plugin/pl_player/widgets/custom_aspect_ratio_dialog.dart` | **新文件**：比例菜单项构建、设置弹窗（设比例、切换是否保持上次使用比例，缩放靠捏合） |
 | `lib/plugin/pl_player/view/view.dart` | 画框渲染（视频 `BoxFit.cover` 铺满画框、画框外纯黑）、双指捏合缩放（始终居中）、双击/还原按钮恢复铺满 |
 | `lib/common/widgets/gesture/mouse_interactive_viewer.dart` | 新增 `onExternalScale` / `externalScale` 外部缩放钩子 |
 | `lib/pages/live_room/widgets/bottom_control.dart` | 直播间比例菜单接入同一套逻辑 |
@@ -89,6 +89,7 @@ git diff cb1773944 -- lib         # 和上游基线对比
 | --- | --- | --- |
 | UI-01 | `pages/video/introduction/ugc/view.dart` | 移除视频下方操作栏的“缓存”按钮（右上角菜单仍有“缓存视频”） |
 | UI-02 | `plugin/pl_player/view/view.dart`、`plugin/pl_player/controller.dart`、`utils/storage_*.dart`、`pages/setting/models/style_settings.dart` | 新增设置“全屏时避让挖孔/屏下摄像头”（默认关）：全屏播放时控件不再按挖孔区域内缩，铺满左右边缘 |
+| UI-03 | `pages/video/introduction/ugc/widgets/action_item.dart`、`ugc/view.dart`、`pgc/view.dart` | 播放页下方操作栏视觉左右对齐：改为 MainAxisAlignment.spaceBetween，ActionItem 支持非 expand 模式下渲染文字，首尾按钮贴合安全边距，与上方标题和下方推荐流严格垂直对齐 |
 
 ## 五、构建
 

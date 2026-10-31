@@ -1399,9 +1399,22 @@ class PlPlayerController with BlockConfigMixin, AudioNormalizationMixin {
     updateCustomAspectRatio(16.0 / 9.0, '16:9');
   }
 
+  /// 是否保持上次使用的画面比例（false: 打开新视频默认使用“默认”比例；true: 保持上次选择的比例）
+  // [PATCH 自定义画幅]
+  late final RxBool rememberVideoFit = Pref.rememberVideoFit.obs;
+
+  void setRememberVideoFit(bool value) {
+    rememberVideoFit.value = value;
+    video.put(VideoBoxKey.rememberVideoFit, value);
+  }
+
   /// 读取fit
   var _prefFit = VideoFitType.values[Pref.cacheVideoFit];
   void _initVideoFit() {
+    if (!rememberVideoFit.value) {
+      videoFit.value = .contain;
+      return;
+    }
     if (_prefFit == .fill && _isVertical) {
       videoFit.value = .contain;
     } else {

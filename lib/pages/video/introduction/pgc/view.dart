@@ -403,13 +403,17 @@ class _PgcIntroPageState extends State<PgcIntroPage> {
   }
 
   Widget actionGrid(PgcStat stat, PgcIntroController introController) {
+    // [PATCH UI-03] 视觉对齐：两端对齐 (MainAxisAlignment.spaceBetween)，首尾贴合安全边距
     return SizedBox(
       height: 48,
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Obx(
             () => ActionItem(
+              expand: false,
+              showText: true,
               animation: introController.tripleAnimation,
               icon: const Icon(FontAwesomeIcons.thumbsUp),
               selectIcon: const Icon(FontAwesomeIcons.solidThumbsUp),
@@ -422,6 +426,8 @@ class _PgcIntroPageState extends State<PgcIntroPage> {
           ),
           Obx(
             () => ActionItem(
+              expand: false,
+              showText: true,
               animation: introController.tripleAnimation,
               icon: const Icon(FontAwesomeIcons.b),
               selectIcon: const Icon(FontAwesomeIcons.b),
@@ -433,6 +439,8 @@ class _PgcIntroPageState extends State<PgcIntroPage> {
           ),
           Obx(
             () => ActionItem(
+              expand: false,
+              showText: true,
               animation: introController.tripleAnimation,
               icon: const Icon(FontAwesomeIcons.star),
               selectIcon: const Icon(FontAwesomeIcons.solidStar),
@@ -448,6 +456,8 @@ class _PgcIntroPageState extends State<PgcIntroPage> {
           ),
           Obx(
             () => ActionItem(
+              expand: false,
+              showText: true,
               icon: const Icon(FontAwesomeIcons.clock),
               selectIcon: const Icon(FontAwesomeIcons.solidClock),
               onTap: () =>
@@ -458,6 +468,8 @@ class _PgcIntroPageState extends State<PgcIntroPage> {
             ),
           ),
           ActionItem(
+            expand: false,
+            showText: true,
             icon: const Icon(FontAwesomeIcons.shareFromSquare),
             onTap: () => introController.actionShareVideo(context),
             selectStatus: false,
