@@ -88,6 +88,7 @@ git diff cb1773944 -- lib         # 和上游基线对比
 | 编号 | 文件 | 说明 |
 | --- | --- | --- |
 | UI-01 | `pages/video/introduction/ugc/view.dart` | 移除视频下方操作栏的“缓存”按钮（右上角菜单仍有“缓存视频”） |
+| UI-02 | `plugin/pl_player/view/view.dart`、`plugin/pl_player/controller.dart`、`utils/storage_*.dart`、`pages/setting/models/style_settings.dart` | 新增设置“全屏时避让挖孔/屏下摄像头”（默认关）：全屏播放时控件不再按挖孔区域内缩，铺满左右边缘 |
 
 ## 五、构建
 

@@ -1100,6 +1100,10 @@ abstract final class Pref {
   static bool get removeSafeArea =>
       _setting.get(SettingBoxKey.removeSafeArea, defaultValue: false);
 
+  // [PATCH UI-02] 全屏播放时是否避让挖孔/屏下摄像头区域，默认不避让
+  static bool get fsAvoidCutout =>
+      _setting.get(SettingBoxKey.fsAvoidCutout, defaultValue: false);
+
   static int get angleDegrees =>
       _setting.get(SettingBoxKey.angleDegrees, defaultValue: 30);
 

@@ -174,6 +174,14 @@ List<SettingsModel> get styleSettings => [
     setKey: SettingBoxKey.removeSafeArea,
     defaultVal: false,
   ),
+  // [PATCH UI-02]
+  const SwitchModel(
+    title: '全屏时避让挖孔/屏下摄像头',
+    subtitle: '关闭后全屏播放控件铺满屏幕左右边缘，重新进入播放页生效',
+    leading: Icon(Icons.camera_front_outlined),
+    setKey: SettingBoxKey.fsAvoidCutout,
+    defaultVal: false,
+  ),
   const SwitchModel(
     title: '视频播放页使用深色主题',
     leading: Icon(Icons.dark_mode_outlined),

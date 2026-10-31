@@ -1387,6 +1387,10 @@ class _PLVideoPlayerState extends State<PLVideoPlayer>
     maxWidth = widget.maxWidth;
     maxHeight = widget.maxHeight;
     final isFullScreen = this.isFullScreen;
+    // [PATCH UI-02] 全屏时可选不避让挖孔/屏下摄像头（默认不避让）
+    final noSideInset =
+        plPlayerController.removeSafeArea ||
+        (isFullScreen && !plPlayerController.fsAvoidCutout);
     final primary = isFullScreen && colorScheme.isLight
         ? colorScheme.inversePrimary
         : colorScheme.primary;
@@ -1642,7 +1646,7 @@ class _PLVideoPlayerState extends State<PLVideoPlayer>
                     isTop: true,
                     controller: _animationController,
                     isFullScreen: isFullScreen,
-                    removeSafeArea: plPlayerController.removeSafeArea,
+                    removeSafeArea: noSideInset,
                     child: plPlayerController.isDesktopPip
                         ? GestureDetector(
                             behavior: HitTestBehavior.translucent,
@@ -1658,7 +1662,7 @@ class _PLVideoPlayerState extends State<PLVideoPlayer>
                     lazy: true,
                     controller: _animationController,
                     isFullScreen: isFullScreen,
-                    removeSafeArea: plPlayerController.removeSafeArea,
+                    removeSafeArea: noSideInset,
                     child:
                         widget.bottomControl ??
                         BottomControl(
@@ -1854,7 +1858,7 @@ class _PLVideoPlayerState extends State<PLVideoPlayer>
           if (plPlayerController.showFsLockBtn)
             ViewSafeArea(
               right: false,
-              left: !plPlayerController.removeSafeArea,
+              left: !noSideInset,
               child: Align(
                 alignment: Alignment.centerLeft,
                 child: FractionalTranslation(
@@ -1898,7 +1902,7 @@ class _PLVideoPlayerState extends State<PLVideoPlayer>
           if (plPlayerController.showFsScreenshotBtn)
             ViewSafeArea(
               left: false,
-              right: !plPlayerController.removeSafeArea,
+              right: !noSideInset,
               child: Obx(
                 () => Align(
                   alignment: Alignment.centerRight,
