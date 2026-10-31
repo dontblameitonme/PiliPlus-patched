@@ -111,6 +111,7 @@ class _PlDanmakuState extends State<PlDanmaku> {
     }
     // 补齐两次回调之间被跳过的 100ms 分桶（高倍速或偶发卡顿时避免漏弹幕）；
     // 回退或跳跃超过 1 秒（seek）时只取当前分桶
+    // [PATCH PERF-16] 补齐跳过的 100ms 分桶
     final int fromPosition =
         (latestAddedPosition < 0 ||
             currentPosition < latestAddedPosition ||

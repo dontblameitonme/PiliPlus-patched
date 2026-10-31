@@ -202,6 +202,7 @@ class _EpisodePanelState extends State<EpisodePanel>
         }
         _addUgcListener();
 
+        // [PATCH BUG-02] seasonId 为空时回退 ugcSeason.id，避免空断言
         final int? resolvedSeasonId =
             _videoDetail.seasonId ?? _videoDetail.ugcSeason?.id;
         if (Accounts.main.isLogin && resolvedSeasonId != null) {

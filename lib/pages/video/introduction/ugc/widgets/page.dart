@@ -93,6 +93,7 @@ class _PagePanelState extends State<PagePanel> {
   }
 
   void _reset() {
+    // [PATCH BUG-15] 先移除再添加，防止重复注册
     _ugcController.indexNotifier.removeListener(_listener);
     if (_isCurr = widget.parts == null) {
       _initIfNeeded();

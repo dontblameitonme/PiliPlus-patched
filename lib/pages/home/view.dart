@@ -82,6 +82,7 @@ class _HomePageState extends CommonPageState<HomePage>
           customAppBar(),
         tabBar,
         Expanded(
+          // [PATCH PERF-05] 隔离 tabBarView 的重绘
           child: RepaintBoundary(
             child: onBuild(
               tabBarView(
@@ -123,6 +124,7 @@ class _HomePageState extends CommonPageState<HomePage>
         );
       }
       if (_homeController.showTopBar case final showTopBar?) {
+        // [PATCH PERF-05] 顶栏加 RepaintBoundary，动画时长 300/500ms -> 200/250ms
         return RepaintBoundary(
           child: Obx(() {
             final showSearchBar = showTopBar.value;

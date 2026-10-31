@@ -13,6 +13,7 @@ class PublishRoute<T> extends PopupRoute<T> {
   }) : transitionDuration =
            transitionDuration ??
            (PlatformUtils.isDesktop
+               // [PATCH PERF-10] 默认时长 400/500ms -> 300/320ms
                ? const Duration(milliseconds: 300)
                : const Duration(milliseconds: 320));
 
@@ -56,6 +57,7 @@ class PublishRoute<T> extends PopupRoute<T> {
       return _transitionBuilder(context, animation, secondaryAnimation, child);
     }
     return SlideTransition(
+      // [PATCH PERF-10] 加 easeOutCubic / easeInCubic 曲线（上游为线性）
       position:
           Tween<Offset>(
             begin: const Offset(0.0, 1.0),

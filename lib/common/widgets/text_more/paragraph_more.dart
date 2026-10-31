@@ -96,6 +96,7 @@ class RenderParagraphMore extends RenderParagraph {
       if (_onShowMore != null) {
         _tapGestureRecognizer ??= TapGestureRecognizer()..onTap = _onShowMore;
       }
+      // [PATCH BUG-20] 每次布局都重新 layout（适配宽度变化）
       (_morePainter ??= TextPainter(
         text: _moreTextSpan(),
         textDirection: textDirection,
@@ -123,6 +124,7 @@ class RenderParagraphMore extends RenderParagraph {
 
   @override
   bool hitTestChildren(BoxHitTestResult result, {required Offset position}) {
+    // [PATCH BUG-20] 未溢出时不响应“查看更多”点击（列表复用的旧 painter）
     if (didOverflowHeight && _tapGestureRecognizer != null) {
       if (_morePainter != null) {
         if (position.dx < _morePainter!.width) {

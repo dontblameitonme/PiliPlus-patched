@@ -310,6 +310,7 @@ abstract class ReplyController<R> extends CommonListController<R, ReplyInfo> {
 
   void onRemove(int index, ReplyInfo item, int? subIndex) {
     if (subIndex == null) {
+      // [PATCH BUG-13] 删除评论时做越界保护，删除置顶评论时重置 hasUpTop
       final list = loadingState.value.dataOrNull;
       if (list == null || index < 0 || index >= list.length) return;
       if (list[index].replyControl.isUpTop) {
@@ -317,6 +318,7 @@ abstract class ReplyController<R> extends CommonListController<R, ReplyInfo> {
       }
       list.removeAt(index);
     } else {
+      // [PATCH BUG-13] 子评论下标越界保护
       if (subIndex < 0 || subIndex >= item.replies.length) return;
       item
         ..count -= 1
@@ -350,6 +352,7 @@ abstract class ReplyController<R> extends CommonListController<R, ReplyInfo> {
     );
     if (res.isSuccess) {
       item.replyControl.isUpTop = !isUpTop;
+      // [PATCH BUG-13] 置顶/取消置顶后同步 hasUpTop，并做下标越界保护
       hasUpTop = !isUpTop;
       final list = loadingState.value.dataOrNull;
       if (!isUpTop && list != null && index > 0 && index < list.length) {

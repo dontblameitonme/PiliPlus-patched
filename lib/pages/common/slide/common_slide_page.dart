@@ -49,6 +49,7 @@ mixin CommonSlideMixin<T extends CommonSlidePage> on State<T>, TickerProvider {
     if (enableSlide) {
       _animController = AnimationController(
         vsync: this,
+        // [PATCH PERF-02] 动画时长统一为 250ms
         duration: const Duration(milliseconds: 250),
         reverseDuration: const Duration(milliseconds: 250),
       );
@@ -67,6 +68,7 @@ mixin CommonSlideMixin<T extends CommonSlidePage> on State<T>, TickerProvider {
             ..onStart = _onDragStart
             ..onUpdate = _onDragUpdate
             ..onEnd = _onDragEnd
+            // [PATCH BUG-05] onCancel 只复位，不再走 onDragEnd 的退页判断
             ..onCancel = _onDragCancel;
     }
   }
@@ -88,6 +90,7 @@ mixin CommonSlideMixin<T extends CommonSlidePage> on State<T>, TickerProvider {
         builder: (context, constraints) {
           _maxWidth = constraints.maxWidth;
           // 使用合成层位移替代 Align(heightFactor)，避免每帧重排整个列表
+          // [PATCH PERF-02] ClipRect + FractionalTranslation + RepaintBoundary
           return ClipRect(
             child: AnimatedBuilder(
               animation: _animController,
@@ -117,6 +120,7 @@ mixin CommonSlideMixin<T extends CommonSlidePage> on State<T>, TickerProvider {
     _animController.reverse();
   }
 
+  // [PATCH BUG-05] 退页阈值只算实际滑动距离，另外支持快速甩动
   void _onDragEnd(DragEndDetails details) {
     if (_downDx == null) return;
     _downDx = null;

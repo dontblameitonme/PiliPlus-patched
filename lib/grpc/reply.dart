@@ -126,6 +126,7 @@ abstract final class ReplyGrpc {
         pagination: offset == null ? null : FeedPagination(offset: offset),
       ),
       MainListReply.fromBuffer,
+      // [PATCH PERF-09] 主评论列表在后台 isolate 解析
       isolate: true,
     );
     if (res case Success(:final response)) {
@@ -167,6 +168,7 @@ abstract final class ReplyGrpc {
         pagination: offset == null ? null : FeedPagination(offset: offset),
       ),
       DetailListReply.fromBuffer,
+      // [PATCH PERF-09] 楼中楼列表在后台 isolate 解析
       isolate: true,
     );
     return res..dataOrNull?.root.replies.removeWhere(needRemoveGrpc);

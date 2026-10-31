@@ -101,6 +101,7 @@ class _SearchUserPanelState
     return SliverGrid.builder(
       gridDelegate: gridDelegate,
       itemBuilder: (BuildContext context, int index) {
+        // [PATCH PERF-07] 提前 4 项预加载下一页（上游为 index == length - 1）
         if (index >= list.length - 4) {
           controller.onLoadMore();
         }

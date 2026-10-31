@@ -7,12 +7,13 @@ import 'package:get/get_navigation/src/routes/default_route.dart'
 final routeObserver = RouteObserver<GetPageRoute>();
 
 mixin RouteAwareMixin<T extends StatefulWidget> on State<T>, RouteAware {
+  // [PATCH BUG-16] 上游在 initState 里订阅 Get.routing.route，这里改为 didChangeDependencies 订阅 ModalRoute
   GetPageRoute? _subscribedRoute;
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    // BUG-16: subscribe to the route that actually hosts this widget instead
+    // [PATCH BUG-16] subscribe to the route that actually hosts this widget instead
     // of `Get.routing.route`, which may point to another route (dialog, etc.).
     final route = ModalRoute.of(context) ?? Get.routing.route;
     if (route is GetPageRoute && !identical(route, _subscribedRoute)) {

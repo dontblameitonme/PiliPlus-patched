@@ -217,6 +217,7 @@ class VideoCardH extends StatelessWidget {
   }
 }
 
+// [PATCH BUG-11] 连点防重入，原逻辑在 _pushVideoH
 Future<void> pushVideoH(HorizontalVideoModel videoItem) =>
     PushGuard.run(() => _pushVideoH(videoItem));
 

@@ -41,6 +41,7 @@ abstract final class Utils {
     return copyText(jsonEncoder.convert(json), toastText: toastText);
   }
 
+  // [PATCH BUG-16] 用自增序号替代随机数，避免 heroTag 碰撞（格式变为 "<v>_<seq>"）
   static int _heroTagSeq = 0;
   static String makeHeroTag(dynamic v) {
     return '${v}_${_heroTagSeq++}';

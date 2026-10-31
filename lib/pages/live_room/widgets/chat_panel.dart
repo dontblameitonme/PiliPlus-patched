@@ -20,6 +20,7 @@ import 'package:get/get.dart';
 import 'package:material_ui/material_ui.dart';
 
 class LiveRoomChatPanel extends StatelessWidget {
+  // [PATCH PERF-14] 按 emots Map 缓存表情正则
   static final Expando<RegExp> _emotRegExpCache = Expando<RegExp>(
     'liveEmotRegExp',
   );

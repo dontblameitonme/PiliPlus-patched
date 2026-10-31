@@ -380,7 +380,7 @@ class LiveRoomController extends GetxController {
 
   Timer? _scrollTimer;
 
-  /// PERF-14: trailing-edge scheduling so the last messages in a burst are
+  /// [PATCH PERF-14] trailing-edge scheduling so the last messages in a burst are
   /// always scrolled into view (the previous leading throttle dropped them).
   void scrollToBottom() {
     if (_scrollTimer?.isActive ?? false) return;
@@ -514,6 +514,7 @@ class LiveRoomController extends GetxController {
 
   @override
   void onClose() {
+    // [PATCH PERF-14]
     _scrollTimer?.cancel();
     _scrollTimer = null;
     _stopSizeSub();

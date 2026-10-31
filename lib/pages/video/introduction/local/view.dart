@@ -78,6 +78,7 @@ class _LocalIntroPanelState extends State<LocalIntroPanel>
                   Stack(
                     clipBehavior: Clip.none,
                     children: [
+                      // [PATCH PERF-17] 不在 build 里同步调用 existsSync，加载失败时显示网络封面
                       ClipRRect(
                         borderRadius: Style.mdRadius,
                         child: Image.file(

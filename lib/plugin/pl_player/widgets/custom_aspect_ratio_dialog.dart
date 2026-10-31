@@ -1,3 +1,7 @@
+// [PATCH 自定义画幅] 新增文件，上游没有。
+// - buildVideoFitMenuItems: 画面比例菜单项（播放器和直播间共用），长按“自定义”项打开设置弹窗
+// - showCustomAspectRatioDialog: 预设比例、宽:高输入（0.5~3.5）、默认缩放滑块（1.0~2.0）
+// 合并上游时，如果 VideoFitType 或比例菜单有改动，需要同步检查这里
 import 'package:PiliPlus/plugin/pl_player/controller.dart';
 import 'package:PiliPlus/plugin/pl_player/models/video_fit_type.dart';
 import 'package:flutter/services.dart';

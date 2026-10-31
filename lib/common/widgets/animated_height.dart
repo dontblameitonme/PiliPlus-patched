@@ -193,6 +193,7 @@ class RenderAnimatedHeight extends RenderProxyBox {
     this._curve = Curves.linear,
     this._clipBehavior = .hardEdge,
     required this._expand,
+  // [PATCH BUG-18] 单独保存正/反向时长，expand 切换时手动选择（控制器始终 forward）
   }) : _forwardDuration = duration,
        _reverseDuration = reverseDuration {
     _controller =
@@ -214,7 +215,7 @@ class RenderAnimatedHeight extends RenderProxyBox {
     if (_expand == value) return;
     _expand = value;
     _lastValue = 0.0;
-    // BUG-18: the controller always runs forward, so pick the duration that
+    // [PATCH BUG-18] the controller always runs forward, so pick the duration that
     // matches the expand/collapse direction manually.
     _controller
       ..duration = value
@@ -233,6 +234,7 @@ class RenderAnimatedHeight extends RenderProxyBox {
   Heights? _heights;
 
   Duration get duration => _forwardDuration;
+  // [PATCH BUG-18] duration/reverseDuration 存到独立字段，再按当前方向同步到控制器
   set duration(Duration value) {
     if (value == _forwardDuration) {
       return;

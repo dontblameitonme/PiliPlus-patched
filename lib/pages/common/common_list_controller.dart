@@ -8,6 +8,7 @@ abstract class CommonListController<R, T> extends CommonController<R, T> {
   bool get hasFooter => false;
 
   /// 加载下一页失败（如网络波动、风控 -412），用于在列表底部展示「点击重试」
+  // [PATCH PERF-07] 加载更多失败标记（配合列表底部重试）
   bool loadMoreFailed = false;
 
   @override
@@ -53,6 +54,7 @@ abstract class CommonListController<R, T> extends CommonController<R, T> {
       }
       page++;
     } else {
+      // [PATCH PERF-07] 刷新失败显示错误页；加载更多失败只标记 loadMoreFailed
       if (isRefresh) {
         if (!handleError(res is Error ? res.errMsg : null)) {
           loadingState.value = res as Error;

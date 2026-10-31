@@ -529,6 +529,7 @@ class _MediaPageState extends CommonPageState<MinePage>
             physics: const AlwaysScrollableScrollPhysics(),
             padding: const .only(left: 20, top: 10, right: 20),
             itemBuilder: (context, index) {
+              // [PATCH PERF-07] 提前 4 项预加载下一页（上游为 index == length - 1）
               if (index >= response.length - 4) {
                 tabCtr.onLoadMore();
               }

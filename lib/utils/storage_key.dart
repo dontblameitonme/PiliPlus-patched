@@ -270,6 +270,7 @@ abstract final class VideoBoxKey {
       longPressSpeedDefault = 'longPressSpeedDefault',
       speedsList = 'speedsList',
       cacheVideoFit = 'cacheVideoFit',
+          // [PATCH 自定义画幅] 新增 3 个存储键
           // 自定义画框（定框消黑边）比例值，double，默认 16 / 9
           customAspectRatioValue =
           'customAspectRatioValue',

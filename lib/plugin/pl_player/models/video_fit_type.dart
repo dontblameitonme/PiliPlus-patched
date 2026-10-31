@@ -20,6 +20,7 @@ enum VideoFitType {
   final double? aspectRatio;
 
   /// 标记是否使用定框居中裁剪缩放容器
+  // [PATCH 自定义画幅]
   final bool isCustomFramed;
 
   const VideoFitType(

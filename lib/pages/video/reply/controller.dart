@@ -74,6 +74,7 @@ class VideoReplyController extends ReplyController<MainListReply>
         isVideoDetail: true,
         isNested: videoCtr.scrollKey.currentContext != null,
         upMid: upMid,
+        // [PATCH BUG-14] 楼中楼面板需要所属视频页的 heroTag
         heroTag: videoCtr.heroTag,
       ),
     );

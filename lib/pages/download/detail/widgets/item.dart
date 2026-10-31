@@ -214,7 +214,7 @@ class DetailItem extends StatelessWidget {
                         } else {
                           cacheHeight = maxHeight.cacheSize(context);
                         }
-                        // PERF-17: no sync file IO in build, fall back to the
+                        // [PATCH PERF-17] no sync file IO in build, fall back to the
                         // network cover when the local file can't be loaded.
                         return ClipRRect(
                           borderRadius: Style.mdRadius,

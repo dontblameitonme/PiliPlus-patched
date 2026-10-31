@@ -41,6 +41,7 @@ class SuperChatCard extends StatefulWidget {
 
 class _SuperChatCardState extends State<SuperChatCard> {
   Timer? _timer;
+  // [PATCH BUG-21] 保存延迟移除用的 Timer，dispose 时取消
   Timer? _removeTimer;
   RxInt? _remains;
 

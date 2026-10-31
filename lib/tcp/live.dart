@@ -48,6 +48,7 @@ class PackageHeaderRes extends PackageHeader {
   final int headerSize;
 
   static PackageHeaderRes? fromBytesData(Uint8List data) {
+    // [PATCH BUG-08] 包头为 16 字节（上游判断 < 10 会越界）
     if (data.length < 16) {
       logger.w('数据不足以解析PackageHeader');
       return null;
@@ -215,6 +216,7 @@ class LiveMessageStream {
   @pragma('vm:notify-debugger-on-exception')
   void _processingData(Uint8List data) {
     // 使用带边界校验的循环替代无边界递归，避免畸形数据导致越界或栈溢出
+    // [PATCH BUG-08]
     Uint8List cursor = data;
     while (cursor.length >= 16) {
       final subHeader = PackageHeaderRes.fromBytesData(cursor);

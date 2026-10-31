@@ -94,6 +94,7 @@ Widget buildSeekPreviewWidget(
               );
               int align = index % totalPerImage;
               int x = align % imgXLen;
+              // [PATCH BUG-17] 行号按每行列数 imgXLen 计算（上游误用 imgYLen）
               int y = align ~/ imgXLen;
               final url = data.image[pageIndex];
 
@@ -135,6 +136,7 @@ class VideoShotImage extends StatefulWidget {
     required this.y,
     required this.imgXSize,
     required this.imgYSize,
+    // [PATCH BUG-17] 雪碧图行列数，用于计算单帧尺寸（上游写死 /10）
     this.imgXLen = 10,
     this.imgYLen = 10,
     required this.height,
@@ -247,6 +249,7 @@ class _VideoShotImageState extends State<VideoShotImage> {
       widget.imageCache[url] = null;
       _getImg(url).then((image) {
         if (image != null) {
+          // [PATCH BUG-17] 解码完成但无人持有时释放 ui.Image
           final bool cached = widget.isMounted();
           if (cached) {
             widget.imageCache[url] = image;

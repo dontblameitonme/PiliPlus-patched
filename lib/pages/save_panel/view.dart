@@ -126,6 +126,7 @@ class _SavePanelState extends State<SavePanel> {
           final pgcItem = ctr.pgcItem;
           final cid = ctr.cid.value;
           final episode = ctr.findEpisode(cid);
+          // [PATCH BUG-01] findEpisode 可能返回 null
           cover = episode?.cover ?? pgcItem.cover;
           title =
               episode?.shareCopy ??

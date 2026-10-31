@@ -106,7 +106,7 @@ abstract class CommonIntroController extends GetxController
     if (!isShowOnlineTotal) {
       return;
     }
-    // PERF-19: only keep polling while the video is actually playing.
+    // [PATCH PERF-19] only keep polling while the video is actually playing.
     if (_onlineTotalFetched &&
         !videoDetailCtr.plPlayerController.playerStatus.isPlaying) {
       return;

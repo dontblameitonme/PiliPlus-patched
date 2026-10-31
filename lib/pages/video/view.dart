@@ -440,7 +440,7 @@ class _VideoDetailPageVState extends State<VideoDetailPageV>
     plPlayerController
       ?..addStatusLister(playerListener)
       ..addPositionListener(positionListener);
-    // PERF-03: defer player re-init until the covering route has finished
+    // [PATCH PERF-03] defer player re-init until the covering route has finished
     // popping, so decoding/network work does not compete with the transition.
     final bool autoplay =
         videoDetailController.playerStatus?.isPlaying ?? false;
@@ -1342,7 +1342,7 @@ class _VideoDetailPageVState extends State<VideoDetailPageV>
             ? 0
             : oldTabCtr.index.clamp(0, tabs.length - 1),
       );
-      // BUG-07: the old controller may still be attached to widgets built in
+      // [PATCH BUG-07] the old controller may still be attached to widgets built in
       // this frame, dispose it after the frame instead of during build.
       WidgetsBinding.instance.addPostFrameCallback((_) => oldTabCtr.dispose());
     }

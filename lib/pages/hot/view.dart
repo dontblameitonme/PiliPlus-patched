@@ -127,6 +127,7 @@ class _HotPageState extends State<HotPage>
             ? SliverGrid.builder(
                 gridDelegate: gridDelegate,
                 itemBuilder: (context, index) {
+                  // [PATCH PERF-07] 提前 4 项预加载下一页（上游为 index == length - 1）
                   if (index >= response.length - 4) {
                     controller.onLoadMore();
                   }

@@ -88,6 +88,7 @@ class PgcIntroController extends CommonIntroController {
 
     super.onInit();
 
+    // [PATCH BUG-01] seasons 可能为空，避免空断言
     seasonIndex =
         pgcItem.seasons?.indexWhere((e) => e.seasonId == seasonId) ?? -1;
     _updateEpisodeIndex(cid.value);
@@ -370,6 +371,7 @@ class PgcIntroController extends CommonIntroController {
   @override
   bool prevPlay() {
     final episodes = this.episodes;
+    // [PATCH BUG-01] 无剧集时不切换
     if (episodes.isEmpty) return false;
     int currentIndex = episodes.indexWhere(
       (e) => e.cid == videoDetailCtr.cid.value,
@@ -488,6 +490,7 @@ class PgcIntroController extends CommonIntroController {
 
   List<EpisodeItem> get episodes {
     if (episodeType == .section) {
+      // [PATCH BUG-01] episodes 改为可空安全：sections/episodes 为空时返回空列表
       final sections = pgcItem.sections;
       if (sections != null &&
           sectionIndex >= 0 &&
@@ -499,6 +502,7 @@ class PgcIntroController extends CommonIntroController {
     return pgcItem.episodes ?? const <EpisodeItem>[];
   }
 
+  // [PATCH BUG-01] findEpisode 返回可空，找不到时回退第一集；调用方需判空
   EpisodeItem? findEpisode(int cid) {
     final episodes = this.episodes;
     return episodes.firstWhereOrNull((e) => e.cid == cid) ??

@@ -71,6 +71,7 @@ class LiveSliverList extends SliverList {
   }
 
   @override
+  // [PATCH BUG-06] 补齐 updateRenderObject，initialIndex 变化时同步到 RenderObject（上游缺失导致公屏空白）
   void updateRenderObject(
     BuildContext context,
     RenderLiveSliverList renderObject,
@@ -85,6 +86,7 @@ class RenderLiveSliverList extends RenderSliverList {
     int initialIndex = 0,
   }) : _initialIndex = initialIndex;
 
+  // [PATCH BUG-06] initialIndex 改为可变并在变化时重新布局
   int _initialIndex;
   int get initialIndex => _initialIndex;
   set initialIndex(int value) {

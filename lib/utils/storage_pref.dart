@@ -916,6 +916,7 @@ abstract final class Pref {
   static int get cacheVideoFit =>
       _video.get(VideoBoxKey.cacheVideoFit, defaultValue: 1);
 
+  // [PATCH 自定义画幅] 读取并校验自定义画框比例 / 标签 / 默认缩放
   static double get customAspectRatioValue {
     final value = _video.get(VideoBoxKey.customAspectRatioValue);
     if (value is num && value.isFinite && value >= 0.5 && value <= 3.5) {

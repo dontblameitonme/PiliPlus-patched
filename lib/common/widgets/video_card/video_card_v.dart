@@ -31,6 +31,7 @@ class VideoCardV extends StatelessWidget {
     this.onRemove,
   });
 
+  // [PATCH BUG-11] 连点防重入，原逻辑在 _onPushDetail
   Future<void> onPushDetail() => PushGuard.run(_onPushDetail);
 
   Future<void> _onPushDetail() async {

@@ -59,6 +59,7 @@ class ArticleController extends CommonDynController
       .toList();
 
   /// 跳转 opus 后额外注册的 Tag，需在销毁时一并清理，避免泄漏
+  // [PATCH BUG-10] 记录别名 Tag 并在 onClose 中清理
   String? _aliasTag;
 
   @override
@@ -91,6 +92,7 @@ class ArticleController extends CommonDynController
             id = opusId;
             type = 'opus';
           }
+          // [PATCH BUG-10] 只有本控制器首次注册该别名时才负责清理
           final aliasTag = type + id;
           if (!Get.isRegistered<ArticleController>(tag: aliasTag)) {
             _aliasTag = aliasTag;

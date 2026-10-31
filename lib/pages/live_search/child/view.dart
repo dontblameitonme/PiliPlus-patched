@@ -99,6 +99,7 @@ class _LiveSearchChildPageState extends State<LiveSearchChildPage>
                     LiveSearchType.room => SliverGrid.builder(
                       gridDelegate: roomDelegate,
                       itemBuilder: (context, index) {
+                        // [PATCH PERF-07] 提前 4 项预加载下一页（上游为 index == length - 1）
                         if (index >= response.length - 4) {
                           _controller.onLoadMore();
                         }
@@ -111,6 +112,7 @@ class _LiveSearchChildPageState extends State<LiveSearchChildPage>
                     LiveSearchType.user => SliverGrid.builder(
                       gridDelegate: userDelegate,
                       itemBuilder: (context, index) {
+                        // [PATCH PERF-07] 提前 4 项预加载下一页（上游为 index == length - 1）
                         if (index >= response.length - 4) {
                           _controller.onLoadMore();
                         }

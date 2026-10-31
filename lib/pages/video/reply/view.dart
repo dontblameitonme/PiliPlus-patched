@@ -163,6 +163,7 @@ class _VideoReplyPanelState extends State<VideoReplyPanel>
           if (hasVote) {
             count++;
           }
+          // [PATCH PERF-12] SliverList -> SuperSliverList
           return SuperSliverList.builder(
             itemBuilder: (context, index) {
               if (hasVote) {

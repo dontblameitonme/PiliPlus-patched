@@ -134,6 +134,7 @@ class _BottomControlState extends State<BottomControl> with HeaderMixin {
                 tooltip: '画面比例',
                 initialValue: plPlayerController.videoFit.value,
                 color: Colors.black.withValues(alpha: 0.8),
+                // [PATCH 自定义画幅] 直播间画面比例菜单，长按“自定义”打开设置弹窗
                 itemBuilder: (menuContext) => buildVideoFitMenuItems(
                   menuContext,
                   plPlayerController,

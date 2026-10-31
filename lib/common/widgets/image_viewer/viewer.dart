@@ -240,6 +240,7 @@ class _ViewerState extends State<Viewer> with SingleTickerProviderStateMixin {
       endScale = widget.minScale;
     }
     final position = _clampPosition(
+      // [PATCH BUG-17] _downPos 可能为空，回退到容器中心
       Offset.lerp(
         _downPos ?? widget.containerSize.center(Offset.zero),
         _position,

@@ -46,6 +46,7 @@ class WhisperDetailPage extends CommonRichTextPubPage {
 
 class _WhisperDetailPageState
     extends CommonRichTextPubPageState<WhisperDetailPage> {
+  // [PATCH BUG-18] 保存 tag，dispose 时显式 Get.delete
   final _tag = Utils.makeHeroTag(Get.parameters['talkerId']);
   late final _whisperDetailController = Get.put(
     WhisperDetailController(),
@@ -170,6 +171,7 @@ class _WhisperDetailPageState
                 physics: platformAlwaysClampingPhysics,
                 controller: _whisperDetailController.scrollController,
                 itemBuilder: (context, int index) {
+                  // [PATCH PERF-07] 提前 4 项预加载下一页（上游为 index == length - 1）
                   if (index >= response.length - 4) {
                     _whisperDetailController.onLoadMore();
                   }

@@ -42,6 +42,7 @@ class MouseInteractiveViewer extends StatefulWidget {
     required this.childKey,
     required this.child,
     required this.scaleGestureRecognizer,
+    // [PATCH 自定义画幅] 外部缩放钩子
     this.onExternalScale,
     this.externalScale,
   }) : assert(minScale > 0),
@@ -79,6 +80,7 @@ class MouseInteractiveViewer extends StatefulWidget {
   /// 非空时，多指缩放（以及桌面端滚轮/触控板缩放）不再变换 [child]，
   /// 而是将期望的总缩放倍数回调给外部处理（例如定框消黑边模式下仅在画框内缩放），
   /// 同时屏蔽所有平移偏移与惯性动画。
+  // [PATCH 自定义画幅]
   final ValueChanged<double>? onExternalScale;
 
   /// 外部缩放模式下，手势开始时的当前缩放倍数。
@@ -290,6 +292,7 @@ class _MouseInteractiveViewerState extends State<MouseInteractiveViewer>
 
   bool _isSinglePointer = false;
 
+  // [PATCH 自定义画幅] 下面各手势回调里的 _useExternalScale 分支都是新增的
   double _externalScaleStart = 1.0;
 
   bool get _useExternalScale => widget.onExternalScale != null;
@@ -881,6 +884,7 @@ Offset _exceedsBy(Quad boundary, Quad viewport) {
 
 Offset _round(Offset offset) {
   return Offset(
+    // [PATCH PERF-20] 改用数值取整（上游 toStringAsFixed + double.parse）
     (offset.dx * 1e9).roundToDouble() / 1e9,
     (offset.dy * 1e9).roundToDouble() / 1e9,
   );

@@ -116,6 +116,7 @@ class _LikeMePageState extends State<LikeMePage> {
                     _buildHeader(theme, '累计'),
                     SliverList.separated(
                       itemBuilder: (context, index) {
+                        // [PATCH PERF-07] 提前 4 项预加载下一页（上游为 index == length - 1）
                         if (index >= total.length - 4) {
                           _likeMeController.onLoadMore();
                         }

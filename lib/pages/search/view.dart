@@ -40,6 +40,7 @@ class _SearchPageState extends State<SearchPage> {
   }
 
   @override
+  // [PATCH BUG-18]
   void dispose() {
     Get.delete<SSearchController>(tag: _tag);
     super.dispose();

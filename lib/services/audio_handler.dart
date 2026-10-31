@@ -166,6 +166,7 @@ class VideoPlayerServiceHandler extends BaseAudioHandler with SeekHandler {
     if (onPlay != null && debugLabel == 'onVideoPaused') return;
 
     final newConfig = (status, isBuffering, isLive, speed);
+    // [PATCH BUG-19] 上游只在 _lastPos != null 时赋值，去重从未生效
     final int? lastSec = _lastPos?.inSeconds;
     _lastPos = position;
     if (_lastConfig == newConfig && lastSec != null) {

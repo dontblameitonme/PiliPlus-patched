@@ -93,6 +93,7 @@ class _MemberLikeArcPageState extends State<MemberLikeArcPage> {
                 gridDelegate: gridDelegate,
                 itemCount: response.length,
                 itemBuilder: (context, index) {
+                  // [PATCH PERF-07] 提前 4 项预加载下一页（上游为 index == length - 1）
                   if (index >= response.length - 4) {
                     _ctr.onLoadMore();
                   }

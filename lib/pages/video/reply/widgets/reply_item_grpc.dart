@@ -93,9 +93,11 @@ class ReplyItemGrpc extends StatelessWidget {
   final VoidCallback? jumpToDialogue;
 
   /// 以 replyItem 为 Key 记录翻译请求中状态，避免 rebuild 后防重失效
+  // [PATCH BUG-12]
   static final Expando<bool> _translating = Expando<bool>('replyTranslating');
   static final _voteRegExp = RegExp(r"^\{vote:\d+?\}$");
   static final _timeRegExp = RegExp(r'^(?:\d+[:：])?\d+[:：]\d+$');
+  // [PATCH PERF-06] 正则静态化；分词正则按 Content 缓存（上游每次 build 都重新编译）
   static final _avBvRegExp = RegExp(r'^(av|bv)', caseSensitive: false);
   static final _cvRegExp = RegExp(
     r'^cv(\d+)$|/read/cv(\d+)|note-app/view\?cvid=(\d+)',
@@ -124,6 +126,7 @@ class ReplyItemGrpc extends StatelessWidget {
   }
 
   /// 当前评论所属视频页的 heroTag（视频页外为 null）
+  // [PATCH BUG-14 / PERF-06] 统一解析视频页 tag，取代 build 里的 try-catch Get.find
   String? _videoTag() {
     final tag = getTag?.call();
     if (tag is String) return tag;
@@ -151,6 +154,7 @@ class ReplyItemGrpc extends StatelessWidget {
       builder: (sheetContext) {
         return morePanel(
           context: sheetContext,
+          // [PATCH BUG-14] 传入外部 context，供菜单关闭后弹对话框使用
           outerCtx: context,
           item: replyItem,
           onDelete: () => onDelete?.call(replyItem, null),
@@ -643,6 +647,7 @@ class ReplyItemGrpc extends StatelessWidget {
                   builder: (sheetContext) {
                     return morePanel(
                       context: sheetContext,
+                      // [PATCH BUG-14]
                       outerCtx: context,
                       item: childReply,
                       onDelete: () => onDelete?.call(replyItem, index),
@@ -1016,6 +1021,7 @@ class ReplyItemGrpc extends StatelessWidget {
   Widget morePanel({
     required BuildContext context,
     // 弹窗关闭后仍然有效的外部 context，用于在 Get.back() 后继续弹出对话框
+    // [PATCH BUG-14]
     BuildContext? outerCtx,
     required ReplyInfo item,
     required VoidCallback onDelete,

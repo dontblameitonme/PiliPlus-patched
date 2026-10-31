@@ -11,6 +11,7 @@ import 'package:flutter/foundation.dart' show kDebugMode, compute;
 import 'package:protobuf/protobuf.dart' show GeneratedMessage;
 
 abstract final class GrpcReq {
+  // [PATCH PERF-09] 后台解析阈值 256KB -> 64KB（只对 isolate: true 的请求生效）
   static const _isolateSize = 64 * 1024;
   static const _gzipMinLength = 64;
 

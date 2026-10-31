@@ -56,6 +56,7 @@ class RenderCustomHeightWidget extends RenderProxyBox {
 
   @override
   void performLayout() {
+    // [PATCH PERF-10] 子节点布局重置 minHeight 为 0，避免折叠时逐像素重排
     if (height != null) {
       child!.layout(constraints.copyWith(minHeight: 0.0, maxHeight: .infinity));
       size = constraints.constrainDimensions(constraints.maxWidth, height!);

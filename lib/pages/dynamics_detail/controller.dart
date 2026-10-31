@@ -22,6 +22,7 @@ class DynamicDetailController extends CommonDynController
   DynamicDetailController({super.count});
 
   @override
+  // [PATCH BUG-10] 上游为 late int，未初始化时访问会崩溃
   int oid = 0;
   @override
   int replyType = 0;
@@ -55,6 +56,7 @@ class DynamicDetailController extends CommonDynController
   }
 
   @override
+  // [PATCH BUG-10]
   Future<void> queryData([bool isRefresh = true]) {
     // 评论 oid 尚未解析完成时不发起请求
     if (oid == 0) return Future.syncValue(null);

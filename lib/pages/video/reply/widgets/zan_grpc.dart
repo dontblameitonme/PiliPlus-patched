@@ -85,6 +85,7 @@ class ZanButtonGrpc extends StatelessWidget {
     }
   }
 
+  // [PATCH BUG-12] 上游在 build 里用局部 isProcessing，rebuild 后失效；改为按 replyItem 记录
   static final Expando<bool> _processing = Expando<bool>('zanProcessing');
 
   static void _toastNotLogin() {

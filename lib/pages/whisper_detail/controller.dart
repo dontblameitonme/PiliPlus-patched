@@ -111,6 +111,7 @@ class WhisperDetailController extends CommonListController<RspSessionMsg, Msg> {
       SmartDialog.showToast('请先登录');
       return;
     }
+    // [PATCH BUG-10] 校验移到加锁之前，用 try/finally 保证 _isSending 一定释放（上游会永久卡死）
     _isSending = true;
     try {
       await _sendMsg(

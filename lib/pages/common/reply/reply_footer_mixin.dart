@@ -19,6 +19,7 @@ mixin ReplyFooterMixin<T extends StatefulWidget, R> on State<T> {
     final fold = controller.foldCard;
     if (fold != null) return _buildFoldItem(fold);
 
+    // [PATCH PERF-07] 加载更多失败时显示“点击重试”
     if (controller.loadMoreFailed && !controller.isEnd) {
       return _buildRetryItem();
     }
@@ -27,6 +28,7 @@ mixin ReplyFooterMixin<T extends StatefulWidget, R> on State<T> {
     return _buildEndItem();
   }
 
+  // [PATCH PERF-07] 失败重试项
   Widget _buildRetryItem() {
     return Container(
       height: 125,

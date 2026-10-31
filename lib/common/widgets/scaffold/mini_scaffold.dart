@@ -165,6 +165,7 @@ class MiniScaffoldState extends State<MiniScaffold>
 
   @override
   Widget build(BuildContext context) {
+    // [PATCH PERF-02] body / bottomSheet 各自包 RepaintBoundary
     final bottomSheet = _currentBottomSheet?.widget;
     return BottomSheetLayout(
       // 隔离主页面与弹出面板的绘制，避免面板动画时重绘底层整个页面
@@ -214,6 +215,7 @@ class _StandardBottomSheetState
     if (widget.enableDrag) {
       // 使用 ClipRect + FractionalTranslation 走合成层位移动画，替代
       // Align(heightFactor) 每帧触发的布局
+      // [PATCH PERF-02] 面板进出场动画（上游为 Align(heightFactor)）
       return ClipRect(
         child: AnimatedBuilder(
           animation: widget.animationController,

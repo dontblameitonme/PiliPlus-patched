@@ -52,6 +52,7 @@ class VideoReplyReplyPanel extends CommonSlidePage {
   final Int64? upMid;
 
   /// 所属视频页的 heroTag，用于评论时间戳跳转到正确的视频页
+  // [PATCH BUG-14]
   final String? heroTag;
 
   static Future<void>? toReply({

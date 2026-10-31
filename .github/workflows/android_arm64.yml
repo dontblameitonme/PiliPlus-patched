@@ -1,0 +1,97 @@
+# [PATCH] 新增工作流：只编译 arm64-v8a APK，并发布到 GitHub Release
+# 步骤和 build.yml 的 android job 一致（Apply Patch / 版本号 / 签名），只是限定了 ABI。
+name: Android arm64-v8a
+
+on:
+    workflow_dispatch:
+        inputs:
+            tag:
+                description: "Release tag（留空则自动生成 patched-<版本>-<运行号>）"
+                required: false
+                default: ""
+                type: string
+            prerelease:
+                description: "标记为预发布"
+                required: false
+                default: false
+                type: boolean
+
+jobs:
+    android_arm64:
+        name: Build & Release arm64-v8a
+        runs-on: ubuntu-latest
+        permissions:
+            contents: write
+
+        steps:
+            - name: 代码迁出
+              uses: actions/checkout@v4
+              with:
+                  fetch-depth: 0
+
+            - name: 构建Java环境
+              uses: actions/setup-java@v4
+              with:
+                  distribution: "zulu"
+                  java-version: "17"
+                  cache: "gradle"
+                  cache-dependency-path: |
+                      android/*.gradle*
+                      android/**/gradle-wrapper.properties
+
+            - name: 安装Flutter
+              uses: subosito/flutter-action@v2
+              with:
+                  channel: stable
+                  flutter-version-file: pubspec.yaml
+                  cache: true
+
+            - name: Apply Patch
+              shell: pwsh
+              run: lib/scripts/patch.ps1 android
+
+            - name: Write key
+              run: |
+                  if [ ! -z "${{ secrets.SIGN_KEYSTORE_BASE64 }}" ]; then
+                    echo "${{ secrets.SIGN_KEYSTORE_BASE64 }}" | base64 --decode > android/app/key.jks
+                    echo storeFile='key.jks' >> android/key.properties
+                    echo storePassword='${{ secrets.KEYSTORE_PASSWORD }}' >> android/key.properties
+                    echo keyAlias='${{ secrets.KEY_ALIAS }}' >> android/key.properties
+                    echo keyPassword='${{ secrets.KEY_PASSWORD }}' >> android/key.properties
+                  fi
+
+            - name: Set and Extract version
+              shell: pwsh
+              run: lib/scripts/build.ps1 android
+
+            - name: Flutter Build arm64-v8a Apk
+              run: flutter build apk --release --target-platform android-arm64 --split-per-abi --dart-define-from-file=pili_release.json --no-pub
+
+            - name: Rename
+              shell: bash
+              run: |
+                  mv build/app/outputs/flutter-apk/app-arm64-v8a-release.apk "PiliPlus_android_${{ env.version }}_arm64-v8a.apk"
+                  if [ -n "${{ github.event.inputs.tag }}" ]; then
+                    tag="${{ github.event.inputs.tag }}"
+                  else
+                    tag="patched-$(echo '${{ env.version }}' | sed 's/+.*//')-${{ github.run_number }}"
+                  fi
+                  echo "release_tag=$tag" >> "$GITHUB_ENV"
+
+            - name: Release
+              uses: softprops/action-gh-release@v2
+              with:
+                  tag_name: ${{ env.release_tag }}
+                  name: ${{ env.release_tag }}
+                  target_commitish: ${{ github.sha }}
+                  prerelease: ${{ github.event.inputs.prerelease == 'true' }}
+                  body: |
+                      PiliPlus-patched arm64-v8a 构建（commit ${{ github.sha }}）
+                      改动说明见仓库根目录 PATCHES.md
+                  files: PiliPlus_android_*_arm64-v8a.apk
+
+            - name: 上传 Artifact
+              uses: actions/upload-artifact@v4
+              with:
+                  name: Android_arm64-v8a
+                  path: PiliPlus_android_*_arm64-v8a.apk

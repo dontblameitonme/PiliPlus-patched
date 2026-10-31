@@ -139,6 +139,7 @@ class _PLVideoPlayerState extends State<PLVideoPlayer>
   /// The volume plugin only keeps one global listener; only remove it on
   /// dispose if it still belongs to this player view (e.g. a live room
   /// in the background must keep its own listener).
+  // [PATCH BUG-09] 上游在 dispose 里直接 removeListener()，会误删后台直播间的音量监听
   static Object? _activeVolumeOwner;
   final Object _volumeOwner = Object();
 
@@ -203,6 +204,7 @@ class _PLVideoPlayerState extends State<PLVideoPlayer>
 
   StreamSubscription? _controlsListener;
   StreamSubscription<VideoFitType>? _videoFitListener;
+  // [PATCH 自定义画幅] 画框缩放复位动画
   AnimationController? _framedZoomAnimController;
   void _onControlChanged(bool val) {
     final visible = val && !plPlayerController.controlsLock.value;
@@ -263,6 +265,7 @@ class _PLVideoPlayerState extends State<PLVideoPlayer>
     super.initState();
     addObserverMobile(this);
 
+    // [PATCH 自定义画幅] 切换画面比例时重置视口变换
     _videoFitListener = plPlayerController.videoFit.listen((fit) {
       if (fit.isCustomFramed) {
         // 定框模式下外框几何锁死：清除全屏视口缩放，避免侵占左右遮幅黑边
@@ -288,6 +291,7 @@ class _PLVideoPlayerState extends State<PLVideoPlayer>
         try {
           FlutterVolumeController.updateShowSystemUI(true);
           _getCurrVolume();
+          // [PATCH BUG-09]
           _activeVolumeOwner = _volumeOwner;
           FlutterVolumeController.addListener(
             _onVolumeChanged,
@@ -409,6 +413,7 @@ class _PLVideoPlayerState extends State<PLVideoPlayer>
     _animationController.dispose();
     _transformationController.dispose();
     _removeDmAction();
+    // [PATCH BUG-09] dispose 时取消亮度 Timer；音量监听只在仍归本页时移除
     _brightnessTimer?.cancel();
     if (PlatformUtils.isMobile) {
       if (identical(_activeVolumeOwner, _volumeOwner)) {
@@ -615,6 +620,7 @@ class _PLVideoPlayerState extends State<PLVideoPlayer>
       BottomControlType.fit => Obx(
         () {
           final fit = plPlayerController.videoFit.value;
+          // [PATCH 自定义画幅] 菜单文字改为动态（自定义比例显示用户设定的标签），长按“自定义”打开设置弹窗
           final fitDesc = plPlayerController.videoFitDesc(fit);
           return PopupMenuButton<VideoFitType>(
             tooltip: '画面比例',
@@ -942,6 +948,7 @@ class _PLVideoPlayerState extends State<PLVideoPlayer>
     showRestoreScaleBtn.value = scale != 1.0;
   }
 
+  // [PATCH 自定义画幅] 画框模式下的手势缩放和复位动画
   bool get _isFramedMode => plPlayerController.videoFit.value.isCustomFramed;
 
   /// 定框模式下的捏合缩放：仅在画框内部居中缩放，限制在 [1.0, 3.0]
@@ -1160,6 +1167,7 @@ class _PLVideoPlayerState extends State<PLVideoPlayer>
     if (plPlayerController.isLive || plPlayerController.controlsLock.value) {
       return;
     }
+    // [PATCH 自定义画幅] 双击复原缩放，优先于暂停/播放
     if (_isFramedMode && plPlayerController.framedZoomScale.value > 1.0) {
       // 定框模式下处于放大状态时，双击平滑复原至 1.0x
       showRestoreScaleBtn.value = false;
@@ -1705,6 +1713,7 @@ class _PLVideoPlayerState extends State<PLVideoPlayer>
                       ),
                       onPressed: () async {
                         showRestoreScaleBtn.value = false;
+                        // [PATCH 自定义画幅] “还原”按钮在画框模式下复原缩放
                         if (_isFramedMode) {
                           _animateFramedZoomTo(1.0);
                           return;
@@ -1763,7 +1772,7 @@ class _PLVideoPlayerState extends State<PLVideoPlayer>
                         showControls ||
                         (isFullScreen && !plPlayerController.isSeeking.value);
                 }
-                // PERF-13: skip building the hidden mini progress bar so its
+                // [PATCH PERF-13] skip building the hidden mini progress bar so its
                 // inner Obx no longer rebuilds every position update.
                 if (offstage) {
                   return const SizedBox.shrink();
@@ -2073,6 +2082,7 @@ class _PLVideoPlayerState extends State<PLVideoPlayer>
           onPanUpdate: _onPanUpdate,
           onPanEnd: _onPanEnd,
           onScaleUpdate: _onScaleUpdate,
+          // [PATCH 自定义画幅] 画框模式下由外部处理缩放手势
           onExternalScale: plPlayerController.videoFit.value.isCustomFramed
               ? _onFramedScale
               : null,
@@ -2092,6 +2102,7 @@ class _PLVideoPlayerState extends State<PLVideoPlayer>
             child: Obx(
               () {
                 final videoFit = plPlayerController.videoFit.value;
+                // [PATCH 自定义画幅] 画框渲染：Center > AspectRatio > ClipRect > Transform.scale > FittedBox
                 if (videoFit.isCustomFramed) {
                   return Transform.flip(
                     flipX: plPlayerController.flipX.value,
@@ -2240,6 +2251,7 @@ class _PLVideoPlayerState extends State<PLVideoPlayer>
           ),
         ) ??
         false;
+    // [PATCH BUG-18] 弹窗关闭后检查 mounted
     if (!success || !mounted) return;
 
     final progress = 0.0.obs;

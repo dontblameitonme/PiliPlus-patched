@@ -804,6 +804,7 @@ class PlPlayerController with BlockConfigMixin, AudioNormalizationMixin {
     );
   }
 
+  // [PATCH BUG-09] 上游为 late final，单例在切换番剧类型后不会更新
   bool get isAnim => _pgcType == 1 || _pgcType == 4;
   late final Rx<SuperResolutionType> superResolutionType =
       (isAnim ? Pref.superResolutionType : SuperResolutionType.disable).obs;
@@ -1050,6 +1051,7 @@ class PlPlayerController with BlockConfigMixin, AudioNormalizationMixin {
           _updateIOSPip();
         }
 
+        // [PATCH BUG-09] 遍历快照，防止回调里增删监听器导致并发修改异常
         for (final element in _statusListeners.toList()) {
           element(playing ? .playing : .paused);
         }
@@ -1066,6 +1068,7 @@ class PlPlayerController with BlockConfigMixin, AudioNormalizationMixin {
           playerStatus = .completed;
           _startWakeLockTimer();
 
+          // [PATCH BUG-09]
           for (final element in _statusListeners.toList()) {
             element(.completed);
           }
@@ -1088,6 +1091,7 @@ class PlPlayerController with BlockConfigMixin, AudioNormalizationMixin {
           makeHeartBeat(posInSeconds);
         }
 
+        // [PATCH BUG-09]
         for (final element in _positionListeners.toList()) {
           element(position);
         }
@@ -1126,6 +1130,7 @@ class PlPlayerController with BlockConfigMixin, AudioNormalizationMixin {
           if (event.startsWith('tcp: ffurl_read returned ') ||
               event.startsWith("Failed to open https://") ||
               event.startsWith("Can not open external file https://")) {
+            // [PATCH BUG-09] 保存直播重连 Timer，dispose 时取消
             _liveRetryTimer?.cancel();
             _liveRetryTimer = Timer(
               const Duration(milliseconds: 3000),
@@ -1304,6 +1309,7 @@ class PlPlayerController with BlockConfigMixin, AudioNormalizationMixin {
 
   final RxBool volumeIndicator = false.obs;
   Timer? volumeTimer;
+  // [PATCH BUG-09]
   Timer? _liveRetryTimer;
   bool volumeInterceptEventStream = false;
 
@@ -1340,6 +1346,7 @@ class PlPlayerController with BlockConfigMixin, AudioNormalizationMixin {
   void toggleVideoFit(VideoFitType value) {
     _prefFit = videoFit.value = value;
     video.put(VideoBoxKey.cacheVideoFit, value.index);
+    // [PATCH 自定义画幅] 切到画框模式时恢复默认缩放；下面的画框状态和方法都是新增的
     if (value.isCustomFramed) {
       // 进入定框模式时恢复为用户设定的默认消黑边缩放倍数
       framedZoomScale.value = _defaultFramedZoomScale;
@@ -1782,6 +1789,7 @@ class PlPlayerController with BlockConfigMixin, AudioNormalizationMixin {
     }
 
     _removeListeners();
+    // [PATCH BUG-09] dispose 时取消音量和直播重连 Timer
     volumeTimer?.cancel();
     volumeTimer = null;
     _liveRetryTimer?.cancel();

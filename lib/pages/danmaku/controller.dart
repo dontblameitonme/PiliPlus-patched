@@ -32,6 +32,7 @@ class PlDanmakuController {
   // 已请求的段落标记
   late final Set<int> _requestedSeg = HashSet();
 
+  // [PATCH PERF-09] 异步解析离线弹幕期间若已销毁则丢弃结果
   bool _disposed = false;
 
   void dispose() {
@@ -64,11 +65,13 @@ class PlDanmakuController {
   }
 
   /// 弹幕合并的时间窗口：仅合并 5 秒内出现的同文弹幕
+  // [PATCH BUG-04] 合并弹幕改为 5 秒窗口内去重（上游为整段全局去重，会吞弹幕）
   static const int _mergeWindowMs = 5000;
 
   void handleDanmaku(List<DanmakuElem> elems) {
     if (elems.isEmpty) return;
     final uniques = HashMap<String, DanmakuElem>();
+    // [PATCH BUG-04]
     if (_mergeDanmaku) {
       // 按时间排序，保证合并窗口以最早出现的那条为基准
       elems = elems.toList()..sort((a, b) => a.progress.compareTo(b.progress));
@@ -117,6 +120,7 @@ class PlDanmakuController {
 
   bool _fileDmLoaded = false;
 
+  // [PATCH PERF-09] 用于 compute 的顶层解析函数
   static List<DanmakuElem> _parseDmElems(Uint8List bytes) =>
       DmSegMobileReply.fromBuffer(bytes).elems;
 
@@ -138,7 +142,7 @@ class PlDanmakuController {
       if (!file.existsSync()) return;
       final bytes = await file.readAsBytes();
       if (bytes.isEmpty || _disposed) return;
-      // PERF-09: parse the whole offline danmaku file off the UI isolate.
+      // [PATCH PERF-09] parse the whole offline danmaku file off the UI isolate.
       final elem = await compute(_parseDmElems, bytes);
       if (_disposed) return;
       handleDanmaku(elem);
