@@ -80,7 +80,13 @@ git diff cb1773944 -- lib         # 和上游基线对比
 | PERF-19 | 在线人数只在播放时轮询 | ✅ |
 | PERF-20 | `_round` 数值化；挂件尺寸取整 | ✅ |
 
-## 四、构建
+## 四、界面调整
+
+| 编号 | 文件 | 说明 |
+| --- | --- | --- |
+| UI-01 | `pages/video/introduction/ugc/view.dart` | 移除视频下方操作栏的“缓存”按钮（右上角菜单仍有“缓存视频”） |
+
+## 五、构建
 
 `.github/workflows/android_arm64.yml`：手动触发，只编译 arm64-v8a 的 APK。如果填了 tag，会同时发布到 GitHub Release。
 没有配置签名 Secrets（`SIGN_KEYSTORE_BASE64` / `KEYSTORE_PASSWORD` / `KEY_ALIAS` / `KEY_PASSWORD`）时，用 runner 自动生成的 debug 签名，每次构建的签名都不一样。
