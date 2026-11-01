@@ -2,6 +2,13 @@
 
 本仓库基于上游 [bggRGjQaUbCoE/PiliPlus](https://github.com/bggRGjQaUbCoE/PiliPlus)，在提交 `cb1773944`（upgrade deps）之上做了下面这些修改。
 
+已合并上游到 `265f879fa`（Release 2.2.0，`cb1773944..265f879fa` 共 11 个提交：Linux WebView 迁移到 `webview_all`、进度条悬停预览、分 P/剧集面板滚动定位重构、剧集面板显示 PGC 分段、订阅详情支持排序、搜索 UA、动态合集折叠跳转、升级依赖）。合并时只有两处文本冲突：
+
+- `lib/pages/subscription_detail/view.dart`：上游把 `_subDetailController` 重命名为 `controller` 并加了排序按钮 mixin，保留了这个改动，同时把 PERF-07 的"提前 4 项预加载"条件也迁到新的 `controller.onLoadMore()` 调用上。
+- `lib/plugin/pl_player/view/widgets.dart`：上游新增了悬停预览（鼠标悬停在进度条上时跟随显示雪碧图和时间），但沿用了未修复的行号计算（`align ~/ imgYLen`）且没有把 `imgXLen`/`imgYLen` 传给 `VideoShotImage`；合并时保留了 BUG-17 的修复（`align ~/ imgXLen`、显式传入行列数），其余悬停定位/文字显示逻辑照上游合入。
+
+其余涉及本仓库补丁的文件（`lib/pages/episode_panel/view.dart`、`lib/pages/video/introduction/ugc/widgets/page.dart`、`lib/pages/video/view.dart`、`lib/plugin/pl_player/controller.dart`、`lib/plugin/pl_player/view/view.dart`）上游改动与现有 `[PATCH]` 补丁不在同一处代码，`git merge` 自动合并、未见冲突；已逐文件核对 `[PATCH` 标注数量与改动前一致。
+
 代码里每处改动都加了 `[PATCH <编号>]` 注释，用下面的命令就能找到全部改动：
 
 ```bash
@@ -14,7 +21,7 @@ git diff cb1773944 -- lib         # 和上游基线对比
 
 1. `git remote add upstream https://github.com/bggRGjQaUbCoE/PiliPlus.git && git fetch upstream`
 2. `git merge upstream/main`（或者 rebase）。遇到冲突时，先 grep 冲突文件里的 `[PATCH`，确认每一处补丁都还在。
-3. 冲突比较多的文件：`lib/plugin/pl_player/view/view.dart`、`lib/plugin/pl_player/controller.dart`、`lib/pages/video/reply/widgets/reply_item_grpc.dart`、`lib/pages/video/view.dart`。
+3. 冲突比较多的文件：`lib/plugin/pl_player/view/view.dart`、`lib/plugin/pl_player/controller.dart`、`lib/plugin/pl_player/view/widgets.dart`、`lib/pages/video/reply/widgets/reply_item_grpc.dart`、`lib/pages/video/view.dart`、`lib/pages/subscription_detail/view.dart`。
 4. 如果上游已经修掉同一个问题，删掉对应的 PATCH，以上游为准。
 5. 合并后先跑 `flutter analyze`，再手动测一下：画面比例菜单、评论区加载更多、直播间公屏、侧滑返回。
 
