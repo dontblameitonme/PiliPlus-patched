@@ -96,8 +96,28 @@ git diff cb1773944 -- lib         # 和上游基线对比
 | --- | --- | --- |
 | UI-01 | `pages/video/introduction/ugc/view.dart` | 移除视频下方操作栏的“缓存”按钮（右上角菜单仍有“缓存视频”） |
 | UI-02 | `plugin/pl_player/view/view.dart`、`plugin/pl_player/controller.dart`、`utils/storage_*.dart`、`pages/setting/models/style_settings.dart` | 新增设置“全屏时避让挖孔/屏下摄像头”（默认关）：全屏播放时控件不再按挖孔区域内缩，铺满左右边缘 |
+| UI-03 | `pages/mine/widgets/fav_item.dart` | 收藏夹卡片“文件夹”观感改为方案 B：封面正上方叠两层逐渐变窄、左右对称居中的边（替换原单边偏移投影）；信息行改为「▶ 播放数 · 公开/私密」，数据来源不变（`mediaCount`） |
 
-## 五、构建
+## 五、新视频默认画面比例 + “保持上次使用的画面比例”开关（R1）
+
+| 文件 | 说明 |
+| --- | --- |
+| `utils/storage_key.dart` | `VideoBoxKey` 新增 `rememberVideoFit` 存储键 |
+| `utils/storage_pref.dart` | `Pref.rememberVideoFit`，默认 `false` |
+| `plugin/pl_player/controller.dart` | `rememberVideoFit`（Rx）、`setRememberVideoFit()`；`setDataSource` 中按 `aid/bvid+cid+epid`（或 `FileSource.dir`）识别“新视频”（含分 P/分集切换，不含清晰度切换等同一视频重新初始化），关闭开关时新视频强制使用「默认」（`contain`）比例，不读取也不覆盖已保存的 `_prefFit`；直播不参与该判断，行为不变 |
+| `plugin/pl_player/widgets/custom_aspect_ratio_dialog.dart` | 弹窗内新增“保持上次使用的画面比例”开关（切换立即生效并持久化）；“恢复默认 16:9”同时关闭该开关，提示语改为“已恢复默认设置” |
+
+行为：开关默认关闭，每个新打开的视频（无论从哪个入口进入、含分 P/分集切换）都以「默认」比例呈现，不继承上一次播放设置的比例；同一次播放内手动切换比例仍立即生效且不受影响；开关打开后恢复为开启前的原始“全局记忆上一次比例”行为。升级后已保存的比例记录不会被删除，打开开关即可继续沿用。
+
+## 六、播放详情页操作栏左右对齐（R2）
+
+| 文件 | 说明 |
+| --- | --- |
+| `pages/video/introduction/ugc/widgets/action_item.dart` | `ActionItem` 新增 `alignment`（`CrossAxisAlignment`，默认 `center`），用于控制图标+文字在竖屏整行布局下的左右对齐 |
+| `pages/video/introduction/ugc/view.dart` | `actionGrid` 新增 `isHorizontal` 参数；竖屏独占一行时，首项（点赞）左对齐、末项（分享）右对齐，与头像/标题、推荐卡片的左右边距（`Style.safeSpace`）对齐；横屏嵌入头像行的布局不变 |
+| `pages/video/introduction/pgc/view.dart` | 番剧/影视详情页操作栏同样首项左对齐、末项右对齐，与 UGC 规则一致 |
+
+## 七、构建
 
 `.github/workflows/android_arm64.yml`：手动触发，只编译 arm64-v8a 的 APK。如果填了 tag，会同时发布到 GitHub Release。
 没有配置签名 Secrets（`SIGN_KEYSTORE_BASE64` / `KEYSTORE_PASSWORD` / `KEY_ALIAS` / `KEY_PASSWORD`）时，用 runner 自动生成的 debug 签名，每次构建的签名都不一样。

@@ -179,6 +179,7 @@ class _UgcIntroPanelState extends State<UgcIntroPanel> {
                       isLoading,
                       introController,
                       videoDetail.stat,
+                      isHorizontal: false,
                     ),
                   ],
                   // 合集
@@ -456,8 +457,10 @@ class _UgcIntroPanelState extends State<UgcIntroPanel> {
     BuildContext context,
     bool isLoading,
     UgcIntroController introController,
-    VideoStat? stat,
-  ) {
+    VideoStat? stat, {
+    // [PATCH R2] 横屏（嵌入头像行）布局保持原样，仅竖屏独占一行时两端对齐
+    required bool isHorizontal,
+  }) {
     return SizedBox(
       height: 48,
       child: Row(
@@ -473,6 +476,7 @@ class _UgcIntroPanelState extends State<UgcIntroPanel> {
               text: !isLoading ? NumUtils.numFormat(stat!.like) : null,
               onStartTriple: introController.onStartTriple,
               onCancelTriple: introController.onCancelTriple,
+              alignment: isHorizontal ? .center : .start,
             ),
           ),
           Obx(
@@ -533,6 +537,7 @@ class _UgcIntroPanelState extends State<UgcIntroPanel> {
             selectStatus: false,
             semanticsLabel: '分享',
             text: !isLoading ? NumUtils.numFormat(stat!.share!) : null,
+            alignment: isHorizontal ? .center : .end,
           ),
         ],
       ),
@@ -747,6 +752,7 @@ class _UgcIntroPanelState extends State<UgcIntroPanel> {
               isLoading,
               introController,
               videoDetail.stat,
+              isHorizontal: true,
             ),
           ),
         ],

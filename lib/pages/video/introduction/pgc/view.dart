@@ -418,6 +418,8 @@ class _PgcIntroPageState extends State<PgcIntroPage> {
               text: NumUtils.numFormat(stat.like),
               onStartTriple: introController.onStartTriple,
               onCancelTriple: introController.onCancelTriple,
+              // [PATCH R2] 操作栏左右两端对齐页面内容边距
+              alignment: .start,
             ),
           ),
           Obx(
@@ -463,6 +465,7 @@ class _PgcIntroPageState extends State<PgcIntroPage> {
             selectStatus: false,
             semanticsLabel: '转发',
             text: NumUtils.numFormat(stat.share),
+            alignment: .end,
           ),
         ],
       ),

@@ -729,6 +729,17 @@ class PlPlayerController with BlockConfigMixin, AudioNormalizationMixin {
     int? rotate,
   }) async {
     try {
+      // [PATCH R1] 在覆盖旧的视频标识字段之前，先判断本次是否是"新视频"
+      // （含分P/分集切换，但不含清晰度切换等同一视频重新初始化场景），
+      // 直播不参与该判断，保持开启前的原始行为
+      if (!isLive) {
+        final fitKey = dataSource is FileSource
+            ? dataSource.dir
+            : '${aid?.toString() ?? bvid ?? ''}_${cid ?? ''}_${epid ?? ''}';
+        _pendingFitDefault =
+            !rememberVideoFit.value && _lastFitVideoKey != fitKey;
+        _lastFitVideoKey = fitKey;
+      }
       _processing = true;
       this.isLive = isLive;
       _videoType = videoType ?? VideoType.ugc;
@@ -1362,6 +1373,25 @@ class PlPlayerController with BlockConfigMixin, AudioNormalizationMixin {
   final RxDouble framedZoomScale = Pref.framedPinchScale.obs;
   Timer? _framedZoomSaveTimer;
 
+  // [PATCH R1] 是否跨视频记忆上次使用的画面比例，默认关闭。
+  // 关闭时，每次打开新视频（含分P/分集切换）都重置为「默认」比例，
+  // 不影响同一次播放内（如切换清晰度）已手动调整的比例。
+  final RxBool rememberVideoFit = Pref.rememberVideoFit.obs;
+
+  /// 切换"保持上次使用的画面比例"开关，立即生效并持久化
+  void setRememberVideoFit(bool value) {
+    if (rememberVideoFit.value == value) return;
+    rememberVideoFit.value = value;
+    video.put(VideoBoxKey.rememberVideoFit, value);
+  }
+
+  /// 上一次应用过比例的视频标识，用于判断本次 [setDataSource] 是否为"新视频"
+  /// （而非同一视频内切换清晰度等重新初始化场景）
+  Object? _lastFitVideoKey;
+
+  /// 本次初始化是否需要忽略记忆的比例、强制使用「默认」比例
+  bool _pendingFitDefault = false;
+
   static const double minFramedZoomScale = 0.5;
   static const double maxFramedZoomScale = 3.0;
 
@@ -1403,6 +1433,13 @@ class PlPlayerController with BlockConfigMixin, AudioNormalizationMixin {
   /// 读取fit
   var _prefFit = VideoFitType.values[Pref.cacheVideoFit];
   void _initVideoFit() {
+    // [PATCH R1] 关闭"保持上次使用的画面比例"开关时，新视频强制使用默认比例，
+    // 不读取、也不覆盖已保存的 _prefFit（开关重新打开后仍可继续沿用）
+    if (_pendingFitDefault) {
+      _pendingFitDefault = false;
+      videoFit.value = .contain;
+      return;
+    }
     if (_prefFit == .fill && _isVertical) {
       videoFit.value = .contain;
     } else {

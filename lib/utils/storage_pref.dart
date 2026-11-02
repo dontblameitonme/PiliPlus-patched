@@ -947,6 +947,11 @@ abstract final class Pref {
     return 1.0;
   }
 
+  // [PATCH R1] 是否跨视频记忆上次使用的画面比例，默认关闭：
+  // 关闭时每个新打开的视频都使用「默认」比例，不继承上一次播放设置的比例
+  static bool get rememberVideoFit =>
+      _video.get(VideoBoxKey.rememberVideoFit, defaultValue: false);
+
   static bool get continuePlayInBackground =>
       _setting.get(SettingBoxKey.continuePlayInBackground, defaultValue: false);
 
