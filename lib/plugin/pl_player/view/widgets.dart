@@ -51,6 +51,8 @@ Widget buildDmChart(
   );
 }
 
+const _kBarMargin = 20.0;
+
 Widget buildSeekPreviewWidget(
   PlPlayerController plPlayerController,
   double maxWidth,
@@ -66,9 +68,12 @@ Widget buildSeekPreviewWidget(
       try {
         final data = plPlayerController.videoShot!.data;
 
-        final double scale =
-            plPlayerController.isFullScreen.value &&
-                (PlatformUtils.isDesktop || !plPlayerController.isVertical)
+        final double scale = PlatformUtils.isDesktop
+            ? maxHeight > maxWidth
+                  ? 3
+                  : 4
+            : plPlayerController.isFullScreen.value &&
+                  !plPlayerController.isVertical
             ? 4
             : 3;
         double height = 27 * scale;
@@ -83,41 +88,64 @@ Widget buildSeekPreviewWidget(
         double imgXSize = data.imgXSize;
         double imgYSize = data.imgYSize;
 
-        return Align(
-          alignment: Alignment.center,
-          child: Obx(
-            () {
-              final index = plPlayerController.previewIndex.value!;
-              int pageIndex = (index ~/ totalPerImage).clamp(
-                0,
-                data.image.length - 1,
-              );
-              int align = index % totalPerImage;
-              int x = align % imgXLen;
-              // [PATCH BUG-17] 行号按每行列数 imgXLen 计算（上游误用 imgYLen）
-              int y = align ~/ imgXLen;
-              final url = data.image[pageIndex];
+        return Obx(
+          () {
+            final index = plPlayerController.previewIndex.value!;
+            int pageIndex = (index ~/ totalPerImage).clamp(
+              0,
+              data.image.length - 1,
+            );
+            int align = index % totalPerImage;
+            int x = align % imgXLen;
+            // [PATCH BUG-17] 行号按每行列数 imgXLen 计算（上游误用 imgYLen）
+            int y = align ~/ imgXLen;
+            final url = data.image[pageIndex];
 
-              return ClipRRect(
-                borderRadius: Style.mdRadius,
-                child: VideoShotImage(
-                  url: url,
-                  x: x,
-                  y: y,
-                  imgXSize: imgXSize,
-                  imgYSize: imgYSize,
-                  imgXLen: imgXLen,
-                  imgYLen: imgYLen,
-                  height: height,
-                  imageCache: plPlayerController.previewCache,
-                  onSetSize: (xSize, ySize) => data
-                    ..imgXSize = imgXSize = xSize
-                    ..imgYSize = imgYSize = ySize,
-                  isMounted: isMounted,
-                ),
+            final dx = plPlayerController.hoverDx;
+            final hovering = dx != null;
+            final position = hovering
+                ? DurationUtils.formatDuration(
+                    plPlayerController.seekPosition.value,
+                  )
+                : null;
+
+            final child = ClipRRect(
+              borderRadius: Style.mdRadius,
+              child: VideoShotImage(
+                url: url,
+                x: x,
+                y: y,
+                imgXSize: imgXSize,
+                imgYSize: imgYSize,
+                // [PATCH BUG-17] 雪碧图行列数，用于计算单帧尺寸（上游写死 /10）
+                imgXLen: imgXLen,
+                imgYLen: imgYLen,
+                height: height,
+                imageCache: plPlayerController.previewCache,
+                onSetSize: (xSize, ySize) => data
+                  ..imgXSize = imgXSize = xSize
+                  ..imgYSize = imgYSize = ySize,
+                isMounted: isMounted,
+                position: position,
+              ),
+            );
+
+            if (hovering) {
+              final width = height * imgXSize / imgYSize;
+              final left = clampDouble(
+                dx - width / 2 + _kBarMargin,
+                _kBarMargin,
+                maxWidth - width - _kBarMargin,
               );
-            },
-          ),
+
+              return Positioned(
+                left: left,
+                bottom: 80,
+                child: child,
+              );
+            }
+            return Center(child: child);
+          },
         );
       } catch (e) {
         if (kDebugMode) rethrow;
@@ -142,6 +170,7 @@ class VideoShotImage extends StatefulWidget {
     required this.height,
     required this.onSetSize,
     required this.isMounted,
+    this.position,
   });
 
   final Map<String, ui.Image?> imageCache;
@@ -155,6 +184,7 @@ class VideoShotImage extends StatefulWidget {
   final double height;
   final Function(double imgXSize, double imgYSize) onSetSize;
   final ValueGetter<bool> isMounted;
+  final String? position;
 
   @override
   State<VideoShotImage> createState() => _VideoShotImageState();
@@ -284,7 +314,7 @@ class _VideoShotImageState extends State<VideoShotImage> {
   late final _borderPaint = Paint()
     ..color = Colors.white
     ..style = PaintingStyle.stroke
-    ..strokeWidth = 1.5;
+    ..strokeWidth = kPreviewStroke;
 
   @override
   Widget build(BuildContext context) {
@@ -297,6 +327,7 @@ class _VideoShotImageState extends State<VideoShotImage> {
         rrect: _rrect,
         imgPaint: _imgPaint,
         borderPaint: _borderPaint,
+        position: widget.position,
       );
     }
     return const SizedBox.shrink();
