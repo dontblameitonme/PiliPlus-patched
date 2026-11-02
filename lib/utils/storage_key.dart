@@ -288,5 +288,8 @@ abstract final class VideoBoxKey {
           'customAspectRatioLabel',
           // 画框内消黑边默认缩放倍数，double，默认 1.0
           framedPinchScale =
-          'framedPinchScale';
+          'framedPinchScale',
+          // [PATCH R1] 是否跨视频记忆上次使用的画面比例，bool，默认 false
+          rememberVideoFit =
+          'rememberVideoFit';
 }

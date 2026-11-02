@@ -6,6 +6,7 @@ import 'package:PiliPlus/plugin/pl_player/controller.dart';
 import 'package:PiliPlus/plugin/pl_player/models/video_fit_type.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
+import 'package:get/get.dart';
 import 'package:material_ui/material_ui.dart';
 
 typedef _AspectPreset = ({String label, double width, double height});
@@ -160,8 +161,10 @@ class _CustomAspectRatioDialogState extends State<CustomAspectRatioDialog> {
 
   void _resetDefault() {
     widget.controller.resetCustomAspectRatio();
+    // [PATCH R1] 恢复默认设置时，同步关闭"保持上次使用的画面比例"开关
+    widget.controller.setRememberVideoFit(false);
     Navigator.of(context).pop();
-    SmartDialog.showToast('画框比例已恢复为 16:9');
+    SmartDialog.showToast('已恢复默认设置');
   }
 
   void _save() {
@@ -266,6 +269,30 @@ class _CustomAspectRatioDialogState extends State<CustomAspectRatioDialog> {
                 color: colorScheme.outline,
               ),
             ),
+            const Divider(height: 24),
+            // [PATCH R1] 保持上次使用的画面比例：默认关闭，切换后立即生效并持久保存
+            Obx(() {
+              final remember = widget.controller.rememberVideoFit.value;
+              return ListTile(
+                contentPadding: EdgeInsets.zero,
+                dense: true,
+                title: const Text('保持上次使用的画面比例'),
+                subtitle: Text(
+                  remember
+                      ? '已开启：打开新视频将沿用上次选择的比例'
+                      : '已关闭：打开新视频默认选择「默认」比例',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: colorScheme.outline,
+                  ),
+                ),
+                trailing: Switch(
+                  value: remember,
+                  onChanged: widget.controller.setRememberVideoFit,
+                ),
+                onTap: () =>
+                    widget.controller.setRememberVideoFit(!remember),
+              );
+            }),
             const SizedBox(height: 8),
           ],
         ),
