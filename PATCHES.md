@@ -96,7 +96,6 @@ git diff cb1773944 -- lib         # 和上游基线对比
 | --- | --- | --- |
 | UI-01 | `pages/video/introduction/ugc/view.dart` | 移除视频下方操作栏的“缓存”按钮（右上角菜单仍有“缓存视频”） |
 | UI-02 | `plugin/pl_player/view/view.dart`、`plugin/pl_player/controller.dart`、`utils/storage_*.dart`、`pages/setting/models/style_settings.dart` | 新增设置“全屏时避让挖孔/屏下摄像头”（默认关）：全屏播放时控件不再按挖孔区域内缩，铺满左右边缘 |
-| UI-03 | `pages/mine/widgets/fav_item.dart` | 收藏夹卡片“文件夹”观感改为方案 B：封面正上方叠两层逐渐变窄、左右对称居中的边（替换原单边偏移投影）；信息行改为「▶ 播放数 · 公开/私密」，数据来源不变（`mediaCount`） |
 
 ## 五、新视频默认画面比例 + “保持上次使用的画面比例”开关（R1）
 
