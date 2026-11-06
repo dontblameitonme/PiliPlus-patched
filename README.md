@@ -5,10 +5,8 @@
 
 
 
-> A custom patched edition of [PiliPlus](https://github.com/bggRGjQaUbCoE/PiliPlus), an open-source Bilibili client built with Flutter.
-> This fork includes custom framed aspect ratio with pinch-to-zoom memory, per-video aspect ratio toggle, full-screen cutout avoidance, performance optimizations, and critical stability fixes.
-
----
+A custom patched edition of [PiliPlus](https://github.com/bggRGjQaUbCoE/PiliPlus), an open-source Bilibili client built with Flutter.
+This fork includes custom framed aspect ratio with pinch-to-zoom memory, per-video aspect ratio toggle, full-screen cutout avoidance, performance optimizations, and critical stability fixes.
 
 For technical implementation details, commit history, and patch documentation, see **[PATCHES.md](PATCHES.md)**.
 
