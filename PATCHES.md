@@ -2,10 +2,11 @@
 
 本仓库基于上游 [bggRGjQaUbCoE/PiliPlus](https://github.com/bggRGjQaUbCoE/PiliPlus)，在提交 `cb1773944`（upgrade deps）之上做了下面这些修改。
 
-已合并上游到 `265f879fa`（Release 2.2.0，`cb1773944..265f879fa` 共 11 个提交：Linux WebView 迁移到 `webview_all`、进度条悬停预览、分 P/剧集面板滚动定位重构、剧集面板显示 PGC 分段、订阅详情支持排序、搜索 UA、动态合集折叠跳转、升级依赖）。合并时只有两处文本冲突：
+已合并上游到 `d0e03529b`（`265f879fa..d0e03529b` 共 33 个提交：桌面端推荐来源选择、直播 PiP 刷新/弹幕快捷键、桌面端推荐页刷新 FAB、PGC 视频详情页新增缓存按钮、视频简介展示 aid、Linux MPRIS 支持、窗口最小尺寸修复、音频超 100% 防削波、依赖升级等）。合并时两处冲突均已平滑解决：
 
-- `lib/pages/subscription_detail/view.dart`：上游把 `_subDetailController` 重命名为 `controller` 并加了排序按钮 mixin，保留了这个改动，同时把 PERF-07 的"提前 4 项预加载"条件也迁到新的 `controller.onLoadMore()` 调用上。
-- `lib/plugin/pl_player/view/widgets.dart`：上游新增了悬停预览（鼠标悬停在进度条上时跟随显示雪碧图和时间），但沿用了未修复的行号计算（`align ~/ imgYLen`）且没有把 `imgXLen`/`imgYLen` 传给 `VideoShotImage`；合并时保留了 BUG-17 的修复（`align ~/ imgXLen`、显式传入行列数），其余悬停定位/文字显示逻辑照上游合入。
+- `lib/pages/video/introduction/pgc/controller.dart`：上游 PR #3454 修复了 `seasons` 空指针异常（采用 `?? 0` 兜底），合并时采用上游修复方案。
+- `lib/pages/video/reply/widgets/reply_item_grpc.dart`：上游新增了评论时间有效性判定（`DurationUtils.parseDuration <= timeLength`），合并时保留了本仓库的零异常开销 `Get.isRegistered` 结构，兼顾功能完整与渲染性能。
+- 撤销了先前试验性质的 `9ea786c6b` (UI-03)，收藏夹卡片完全恢复上游原始样式。
 
 其余涉及本仓库补丁的文件（`lib/pages/episode_panel/view.dart`、`lib/pages/video/introduction/ugc/widgets/page.dart`、`lib/pages/video/view.dart`、`lib/plugin/pl_player/controller.dart`、`lib/plugin/pl_player/view/view.dart`）上游改动与现有 `[PATCH]` 补丁不在同一处代码，`git merge` 自动合并、未见冲突；已逐文件核对 `[PATCH` 标注数量与改动前一致。
 
