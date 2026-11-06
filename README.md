@@ -3,11 +3,9 @@
 
 # PiliPlus (Patched Edition)
 
-[![Upstream](https://img.shields.io/badge/Upstream-bggRGjQaUbCoE%2FPiliPlus-blue?logo=github)](https://github.com/bggRGjQaUbCoE/PiliPlus)
-[![License](https://img.shields.io/badge/License-GPL%20v3-green.svg)](LICENSE)
+
 
 > A custom patched edition of [PiliPlus](https://github.com/bggRGjQaUbCoE/PiliPlus), an open-source Bilibili client built with Flutter.
->
 > This fork includes custom framed aspect ratio with pinch-to-zoom memory, per-video aspect ratio toggle, full-screen cutout avoidance, performance optimizations, and critical stability fixes.
 
 ---
