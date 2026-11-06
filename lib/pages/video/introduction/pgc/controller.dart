@@ -88,9 +88,8 @@ class PgcIntroController extends CommonIntroController {
 
     super.onInit();
 
-    // [PATCH BUG-01] seasons 可能为空，避免空断言
     seasonIndex =
-        pgcItem.seasons?.indexWhere((e) => e.seasonId == seasonId) ?? -1;
+        pgcItem.seasons?.indexWhere((e) => e.seasonId == seasonId) ?? 0;
     _updateEpisodeIndex(cid.value);
 
     _onGetPgcInfo();

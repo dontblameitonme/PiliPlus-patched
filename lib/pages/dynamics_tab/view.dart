@@ -51,6 +51,7 @@ class _DynamicsTabPageState extends State<DynamicsTabPage>
   Widget build(BuildContext context) {
     super.build(context);
     return refreshIndicator(
+      key: controller.refreshKey,
       onRefresh: onRefresh,
       child: CustomScrollView(
         // [PATCH PERF-22] 视口外多预构建半屏，快速滑动时少出空白和卡顿
