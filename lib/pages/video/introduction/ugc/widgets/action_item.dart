@@ -14,8 +14,6 @@ class ActionItem extends StatelessWidget {
     this.selectStatus = false,
     required this.semanticsLabel,
     this.expand = true,
-    // [PATCH R2] 操作栏两端对齐：首尾两项可分别靠左/靠右对齐，中间项保持居中
-    this.alignment = CrossAxisAlignment.center,
     this.animation,
     this.onStartTriple,
     this.onCancelTriple,
@@ -30,7 +28,6 @@ class ActionItem extends StatelessWidget {
   final bool selectStatus;
   final String semanticsLabel;
   final bool expand;
-  final CrossAxisAlignment alignment;
   final Animation<double>? animation;
   final VoidCallback? onStartTriple;
   final void Function([bool])? onCancelTriple;
@@ -82,7 +79,6 @@ class ActionItem extends StatelessWidget {
         child: expand
             ? Column(
                 mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: alignment,
                 children: [child, _buildText(theme)],
               )
             : child,
@@ -96,10 +92,6 @@ class ActionItem extends StatelessWidget {
     final child = Text(
       hasText ? text! : '-',
       key: hasText ? ValueKey(text!) : null,
-      // [PATCH R2] 窄屏/大字号下保持单行，避免换行撑高整行、与图标错位
-      maxLines: 1,
-      softWrap: false,
-      overflow: TextOverflow.ellipsis,
       style: TextStyle(
         color: selectStatus
             ? theme.colorScheme.primary
