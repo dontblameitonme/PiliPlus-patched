@@ -2,7 +2,14 @@
 
 本仓库基于上游 [bggRGjQaUbCoE/PiliPlus](https://github.com/bggRGjQaUbCoE/PiliPlus)，在提交 `cb1773944`（upgrade deps）之上做了下面这些修改。
 
-已合并上游到 `d0e03529b`（`265f879fa..d0e03529b` 共 33 个提交：桌面端推荐来源选择、直播 PiP 刷新/弹幕快捷键、桌面端推荐页刷新 FAB、PGC 视频详情页新增缓存按钮、视频简介展示 aid、Linux MPRIS 支持、窗口最小尺寸修复、音频超 100% 防削波、依赖升级等）。合并时两处冲突均已平滑解决：
+已合并上游到 `217fb54f5`（Release 2.2.1，在 `d0e03529b..217fb54f5` 共 42 个提交基础上合并：树状嵌套楼中楼评论 `#3351`、直播间控制器拆分与粉丝勋章管理/直播追踪、离线字幕/看点/音量均衡/合集更新、推荐来源选择描述 `#3517`、专栏 `ArticleType` 枚举重构、删除 `context_ext.dart` 并新增 `media_query.patch`、移除 `seekTo` 的 `isSeek` 参数等）。合并时 4 处冲突均已解决并核对全库 127 个文件 `[PATCH` 标注全部保留：
+
+- `lib/pages/article/controller.dart`：采用上游 `ArticleType` 枚举与 `args`，保留 `[PATCH BUG-10]` 的 `_aliasTag` 记录与 `onClose` 清理（`type.name + id`）。
+- `lib/pages/live_room/controller.dart` & `controller_mixin/dm.dart`：采用上游 11 个 mixin 拆分结构，并将 `[PATCH PERF-14]` 的 200ms 尾缘 `_scrollTimer` 滚底调度及 `onClose` 取消逻辑迁移至 `controller_mixin/dm.dart`。
+- `lib/pages/video/reply/widgets/reply_item_grpc.dart`：基于上游 2.2.1 树状布局重构重新植入 `[PATCH BUG-12]`（`_translating` 防重）、`[PATCH BUG-14]`（`outerCtx` 透传）、`[PATCH PERF-06]`（正则缓存 + `_videoTag` 零异常检查）与 `[PATCH PERF-23]`（`_messageCache` 缓存）。
+- `lib/pages/video/reply_reply/view.dart`：保留上游 `showReplyTree` 树状分支，并保留 `[PATCH PERF-22]` 预构建缓存区与 `[PATCH BUG-14]` `heroTag` / `getTag` 透传（同步覆盖树节点与嵌套对话弹窗）。
+
+此前已合并上游到 `d0e03529b`（`265f879fa..d0e03529b` 共 33 个提交：桌面端推荐来源选择、直播 PiP 刷新/弹幕快捷键、桌面端推荐页刷新 FAB、PGC 视频详情页新增缓存按钮、视频简介展示 aid、Linux MPRIS 支持、窗口最小尺寸修复、音频超 100% 防削波、依赖升级等）。合并时两处冲突均已平滑解决：
 
 - `lib/pages/video/introduction/pgc/controller.dart`：上游 PR #3454 修复了 `seasons` 空指针异常（采用 `?? 0` 兜底），合并时采用上游修复方案。
 - `lib/pages/video/reply/widgets/reply_item_grpc.dart`：上游新增了评论时间有效性判定（`DurationUtils.parseDuration <= timeLength`），合并时保留了本仓库的零异常开销 `Get.isRegistered` 结构，兼顾功能完整与渲染性能。

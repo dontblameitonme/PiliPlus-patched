@@ -25,7 +25,7 @@ mixin ReplyFooterMixin<T extends StatefulWidget, R> on State<T> {
     }
 
     controller.onLoadMore();
-    return _buildEndItem();
+    return buildEndItem();
   }
 
   // [PATCH PERF-07] 失败重试项
@@ -83,7 +83,7 @@ mixin ReplyFooterMixin<T extends StatefulWidget, R> on State<T> {
     );
   }
 
-  Widget _buildEndItem() {
+  Widget buildEndItem() {
     return Container(
       height: 125,
       alignment: .center,

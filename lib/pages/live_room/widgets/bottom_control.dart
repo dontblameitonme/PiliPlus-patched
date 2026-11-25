@@ -74,7 +74,7 @@ class _BottomControlState extends State<BottomControl> with HeaderMixin {
                 color: Colors.white,
               ),
               onTap: () {
-                if (kDebugMode || liveRoomCtr.isLogin) {
+                if (kDebugMode || liveRoomCtr.isMainLogin) {
                   Get.toNamed(
                     '/liveDmBlockPage',
                     parameters: {
