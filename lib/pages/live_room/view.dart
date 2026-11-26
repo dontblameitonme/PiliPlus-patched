@@ -122,6 +122,8 @@ class _LiveRoomPageState extends State<LiveRoomPage>
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
+    // [PATCH PERF-24] 绑定首次进场路由动画，延迟直播播放器启动
+    liveController.pushGate.attachRoute(context);
     if (plPlayerController.removeSafeArea) {
       padding = .zero;
     } else {

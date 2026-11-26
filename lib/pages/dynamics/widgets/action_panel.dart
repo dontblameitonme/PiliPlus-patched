@@ -13,6 +13,23 @@ class ActionPanel extends StatelessWidget {
   });
   final DynamicItemModel item;
 
+  // [PATCH PERF-24] 缓存同色主题下的 ActionPanel ButtonStyle，避免每卡每帧重分配
+  static (Color, ButtonStyle)? _btnStyleCache;
+
+  static ButtonStyle _getBtnStyle(Color outline) {
+    final cached = _btnStyleCache;
+    if (cached != null && cached.$1 == outline) {
+      return cached.$2;
+    }
+    final style = TextButton.styleFrom(
+      tapTargetSize: .padded,
+      padding: const EdgeInsets.symmetric(horizontal: 15),
+      foregroundColor: outline,
+    );
+    _btnStyleCache = (outline, style);
+    return style;
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -22,11 +39,7 @@ class ActionPanel extends StatelessWidget {
     final forward = moduleStat.forward!;
     final comment = moduleStat.comment!;
     final like = moduleStat.like!;
-    final btnStyle = TextButton.styleFrom(
-      tapTargetSize: .padded,
-      padding: const EdgeInsets.symmetric(horizontal: 15),
-      foregroundColor: outline,
-    );
+    final btnStyle = _getBtnStyle(outline);
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceAround,
       children: [

@@ -1,4 +1,5 @@
 import 'package:PiliPlus/common/widgets/appbar/appbar.dart';
+import 'package:PiliPlus/common/widgets/defer_until_route_settled.dart';
 import 'package:PiliPlus/common/widgets/flutter/pop_scope.dart';
 import 'package:PiliPlus/common/widgets/flutter/refresh_indicator.dart';
 import 'package:PiliPlus/common/widgets/gesture/horizontal_drag_gesture_recognizer.dart';
@@ -14,6 +15,7 @@ import 'package:PiliPlus/pages/history/controller.dart';
 import 'package:PiliPlus/pages/history/widgets/item.dart';
 import 'package:PiliPlus/utils/extension/scroll_controller_ext.dart';
 import 'package:PiliPlus/utils/grid.dart';
+import 'package:flutter/rendering.dart' show ScrollCacheExtent;
 import 'package:get/get.dart';
 import 'package:material_ui/material_ui.dart';
 
@@ -64,6 +66,8 @@ class _HistoryPageState extends State<HistoryPage>
     Widget child = refreshIndicator(
       onRefresh: _historyController.onRefresh,
       child: CustomScrollView(
+        // [PATCH PERF-24] 视口外半屏预建
+        scrollCacheExtent: const ScrollCacheExtent.viewport(0.5),
         physics: const AlwaysScrollableScrollPhysics(),
         controller: _historyController.scrollController,
         slivers: [
@@ -209,22 +213,25 @@ class _HistoryPageState extends State<HistoryPage>
       Loading() => gridSkeleton,
       Success(:final response) =>
         response != null && response.isNotEmpty
-            ? SliverGrid.builder(
-                gridDelegate: gridDelegate,
-                itemBuilder: (context, index) {
-                  // [PATCH PERF-07] 提前 4 项预加载下一页（上游为 index == length - 1）
-                  if (index >= response.length - 4) {
-                    _historyController.onLoadMore();
-                  }
-                  final item = response[index];
-                  return HistoryItem(
-                    item: item,
-                    ctr: _historyController,
-                    onDelete: (kid, business) =>
-                        _historyController.delHistory(item),
-                  );
-                },
-                itemCount: response.length,
+            ? DeferUntilRouteSettled(
+                placeholder: gridSkeleton,
+                builder: (_) => SliverGrid.builder(
+                  gridDelegate: gridDelegate,
+                  itemBuilder: (context, index) {
+                    // [PATCH PERF-07] 提前 4 项预加载下一页（上游为 index == length - 1）
+                    if (index >= response.length - 4) {
+                      _historyController.onLoadMore();
+                    }
+                    final item = response[index];
+                    return HistoryItem(
+                      item: item,
+                      ctr: _historyController,
+                      onDelete: (kid, business) =>
+                          _historyController.delHistory(item),
+                    );
+                  },
+                  itemCount: response.length,
+                ),
               )
             : HttpError(onReload: _historyController.onReload),
       Error(:final errMsg) => HttpError(

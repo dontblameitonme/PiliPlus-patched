@@ -1,8 +1,11 @@
+import 'dart:math' as math;
+
 import 'package:PiliPlus/common/skeleton/video_card_v.dart';
 import 'package:PiliPlus/common/sliver_single_child_delegate.dart';
 import 'package:PiliPlus/common/style.dart';
 import 'package:PiliPlus/common/widgets/flutter/refresh_indicator.dart';
 import 'package:PiliPlus/common/widgets/loading_widget/http_error.dart';
+import 'package:PiliPlus/common/widgets/memoized_scroll_item.dart';
 import 'package:PiliPlus/common/widgets/scaffold/simple_scaffold.dart';
 import 'package:PiliPlus/common/widgets/video_card/video_card_v.dart';
 import 'package:PiliPlus/http/loading_state.dart';
@@ -32,10 +35,9 @@ class _RcmdPageState extends State<RcmdPage>
   Widget build(BuildContext context) {
     super.build(context);
     final colorScheme = ColorScheme.of(context);
-    final child = Container(
-      clipBehavior: .hardEdge,
-      margin: const .symmetric(horizontal: Style.safeSpace),
-      decoration: const BoxDecoration(borderRadius: Style.mdRadius),
+    // [PATCH PERF-24] 移除包裹整屏 CustomScrollView 的整页圆角 hardEdge 裁剪，单卡自带圆角即可
+    final child = Padding(
+      padding: const .symmetric(horizontal: Style.safeSpace),
       child: refreshIndicator(
         key: controller.refreshKey,
         onRefresh: controller.onRefresh,
@@ -92,62 +94,101 @@ class _RcmdPageState extends State<RcmdPage>
       Loading() => _buildSkeleton,
       Success(:final response) =>
         response != null && response.isNotEmpty
-            ? SliverGrid.builder(
-                gridDelegate: gridDelegate,
-                itemBuilder: (context, index) {
-                  // [PATCH PERF-07] 提前 4 项预加载下一页（上游为 index == length - 1）
-                  if (index >= response.length - 4) {
-                    controller.onLoadMore();
-                  }
-                  if (controller.lastRefreshAt != null) {
-                    if (controller.lastRefreshAt == index) {
-                      return GestureDetector(
-                        onTap: () => controller
-                          ..animateToTop()
-                          ..onRefresh(),
-                        child: Card(
-                          child: Container(
-                            alignment: Alignment.center,
-                            padding: const .symmetric(horizontal: 10),
-                            child: Text(
-                              '上次看到这里\n点击刷新',
-                              textAlign: .center,
-                              style: TextStyle(
-                                color: colorScheme.onSurfaceVariant,
+            // [PATCH PERF-24] 仅在外层 SliverLayoutBuilder 计算 1 次列宽与封面宽高并下传给子卡
+            ? SliverLayoutBuilder(
+                builder: (context, constraints) {
+                  final crossExtent = constraints.crossAxisExtent;
+                  final crossCount = math.max(
+                    1,
+                    (crossExtent /
+                            (gridDelegate.maxCrossAxisExtent +
+                                gridDelegate.crossAxisSpacing))
+                        .ceil(),
+                  );
+                  final coverWidth =
+                      math.max(
+                        0.0,
+                        crossExtent -
+                            gridDelegate.crossAxisSpacing * (crossCount - 1),
+                      ) /
+                      crossCount;
+                  final coverHeight = coverWidth / Style.aspectRatio;
+                  return SliverGrid.builder(
+                    gridDelegate: gridDelegate,
+                    itemBuilder: (context, index) {
+                      // [PATCH PERF-07] 提前 4 项预加载下一页（上游为 index == length - 1）
+                      if (index >= response.length - 4) {
+                        controller.onLoadMore();
+                      }
+                      if (controller.lastRefreshAt != null) {
+                        if (controller.lastRefreshAt == index) {
+                          return GestureDetector(
+                            onTap: () => controller
+                              ..animateToTop()
+                              ..onRefresh(),
+                            child: Card(
+                              child: Container(
+                                alignment: Alignment.center,
+                                padding: const .symmetric(horizontal: 10),
+                                child: Text(
+                                  '上次看到这里\n点击刷新',
+                                  textAlign: .center,
+                                  style: TextStyle(
+                                    color: colorScheme.onSurfaceVariant,
+                                  ),
+                                ),
                               ),
                             ),
-                          ),
-                        ),
-                      );
-                    }
-                    final actualIndex = index > controller.lastRefreshAt!
-                        ? index - 1
-                        : index;
-                    return VideoCardV(
-                      videoItem: response[actualIndex],
-                      onRemove: () {
-                        if (controller.lastRefreshAt != null &&
-                            actualIndex < controller.lastRefreshAt!) {
-                          controller.lastRefreshAt =
-                              controller.lastRefreshAt! - 1;
+                          );
                         }
-                        controller.loadingState
-                          ..value.data!.removeAt(actualIndex)
-                          ..refresh();
-                      },
-                    );
-                  } else {
-                    return VideoCardV(
-                      videoItem: response[index],
-                      onRemove: () => controller.loadingState
-                        ..value.data!.removeAt(index)
-                        ..refresh(),
-                    );
-                  }
+                        final actualIndex = index > controller.lastRefreshAt!
+                            ? index - 1
+                            : index;
+                        final item = response[actualIndex];
+                        return MemoizedScrollItem(
+                          data: (item, coverWidth),
+                          revision: controller.listRevision,
+                          builder: (_) => VideoCardV(
+                            videoItem: item,
+                            coverWidth: coverWidth,
+                            coverHeight: coverHeight,
+                            onRemove: () {
+                              if (controller.lastRefreshAt != null &&
+                                  actualIndex < controller.lastRefreshAt!) {
+                                controller.lastRefreshAt =
+                                    controller.lastRefreshAt! - 1;
+                              }
+                              controller.listRevision++;
+                              controller.loadingState
+                                ..value.data!.removeAt(actualIndex)
+                                ..refresh();
+                            },
+                          ),
+                        );
+                      } else {
+                        final item = response[index];
+                        return MemoizedScrollItem(
+                          data: (item, coverWidth),
+                          revision: controller.listRevision,
+                          builder: (_) => VideoCardV(
+                            videoItem: item,
+                            coverWidth: coverWidth,
+                            coverHeight: coverHeight,
+                            onRemove: () {
+                              controller.listRevision++;
+                              controller.loadingState
+                                ..value.data!.removeAt(index)
+                                ..refresh();
+                            },
+                          ),
+                        );
+                      }
+                    },
+                    itemCount: controller.lastRefreshAt != null
+                        ? response.length + 1
+                        : response.length,
+                  );
                 },
-                itemCount: controller.lastRefreshAt != null
-                    ? response.length + 1
-                    : response.length,
               )
             : HttpError(onReload: controller.onReload),
       Error(:final errMsg) => HttpError(
@@ -160,7 +201,7 @@ class _RcmdPageState extends State<RcmdPage>
   Widget get _buildSkeleton => SliverGrid(
     gridDelegate: gridDelegate,
     delegate: const SliverSingleChildDelegate(
-      count: 10,
+      count: 6,
       child: VideoCardVSkeleton(),
     ),
   );

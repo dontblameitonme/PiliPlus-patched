@@ -12,7 +12,7 @@ mixin GridMixin {
   Widget get gridSkeleton => SliverGrid(
     gridDelegate: gridDelegate,
     delegate: const SliverSingleChildDelegate(
-      count: 10,
+      count: 6,
       child: VideoCardHSkeleton(),
     ),
   );

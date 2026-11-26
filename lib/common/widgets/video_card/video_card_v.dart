@@ -4,10 +4,8 @@ import 'package:PiliPlus/common/widgets/image/image_save.dart';
 import 'package:PiliPlus/common/widgets/image/network_img_layer.dart';
 import 'package:PiliPlus/common/widgets/stat/stat.dart';
 import 'package:PiliPlus/common/widgets/video_popup_menu.dart';
-import 'package:PiliPlus/http/search.dart';
 import 'package:PiliPlus/models/home/rcmd/result.dart';
 import 'package:PiliPlus/models/model_rec_video_item.dart';
-import 'package:PiliPlus/models_new/video/video_detail/dimension.dart';
 import 'package:PiliPlus/utils/app_scheme.dart';
 import 'package:PiliPlus/utils/date_utils.dart';
 import 'package:PiliPlus/utils/duration_utils.dart';
@@ -24,11 +22,16 @@ import 'package:material_ui/material_ui.dart';
 class VideoCardV extends StatelessWidget {
   final BaseRcmdVideoItemModel videoItem;
   final VoidCallback? onRemove;
+  // [PATCH PERF-24] 支持由外层网格一次性下传封面宽高，消除单卡 LayoutBuilder
+  final double? coverWidth;
+  final double? coverHeight;
 
   const VideoCardV({
     super.key,
     required this.videoItem,
     this.onRemove,
+    this.coverWidth,
+    this.coverHeight,
   });
 
   // [PATCH BUG-11] 连点防重入，原逻辑在 _onPushDetail
@@ -40,33 +43,22 @@ class VideoCardV extends StatelessWidget {
         PageUtils.viewPgc(epId: videoItem.param!);
         break;
       case 'av':
-        var bvid = videoItem.bvid ?? IdUtils.av2bv(videoItem.aid!);
-        var cid = videoItem.cid;
+        final bvid = videoItem.bvid ?? IdUtils.av2bv(videoItem.aid!);
         bool isVertical = false;
-        Dimension? dimension;
         if (videoItem is RcmdVideoItemAppModel) {
           if (videoItem.uri case final uri?) {
             isVertical = uri.isVerticalFromUri;
           }
         }
-        if (cid == null) {
-          if (await SearchHttp.ab2cWithDimension(aid: videoItem.aid, bvid: bvid)
-              case final res?) {
-            cid = res.cid;
-            dimension = res.dimension;
-          }
-        }
-        if (cid != null) {
-          PageUtils.toVideoPage(
-            aid: videoItem.aid,
-            bvid: bvid,
-            cid: cid,
-            cover: videoItem.cover,
-            title: videoItem.title,
-            isVertical: isVertical,
-            dimension: dimension,
-          );
-        }
+        // [PATCH PERF-24] 不再在点击阶段阻塞等待 ab2cWithDimension，直接推入 /videoV 并发解析 cid
+        PageUtils.toVideoPage(
+          aid: videoItem.aid,
+          bvid: bvid,
+          cid: videoItem.cid,
+          cover: videoItem.cover,
+          title: videoItem.title,
+          isVertical: isVertical,
+        );
         break;
       // 动态
       case 'picture':
@@ -102,36 +94,22 @@ class VideoCardV extends StatelessWidget {
             child: Column(
               crossAxisAlignment: .start,
               children: [
-                AspectRatio(
-                  aspectRatio: Style.aspectRatio,
-                  child: LayoutBuilder(
-                    builder: (context, boxConstraints) {
-                      double maxWidth = boxConstraints.maxWidth;
-                      double maxHeight = boxConstraints.maxHeight;
-                      return Stack(
-                        clipBehavior: Clip.none,
-                        children: [
-                          NetworkImgLayer(
-                            src: videoItem.cover,
-                            width: maxWidth,
-                            height: maxHeight,
-                            borderRadius: const .vertical(top: .circular(12)),
-                          ),
-                          if (videoItem.duration > 0)
-                            PBadge(
-                              bottom: 6,
-                              right: 7,
-                              size: .small,
-                              type: .gray,
-                              text: DurationUtils.formatDuration(
-                                videoItem.duration,
-                              ),
-                            ),
-                        ],
-                      );
-                    },
+                if (coverWidth != null && coverHeight != null)
+                  SizedBox(
+                    width: coverWidth,
+                    height: coverHeight,
+                    child: _buildCoverStack(coverWidth!, coverHeight!),
+                  )
+                else
+                  AspectRatio(
+                    aspectRatio: Style.aspectRatio,
+                    child: LayoutBuilder(
+                      builder: (context, boxConstraints) => _buildCoverStack(
+                        boxConstraints.maxWidth,
+                        boxConstraints.maxHeight,
+                      ),
+                    ),
                   ),
-                ),
                 content(context),
               ],
             ),
@@ -147,6 +125,30 @@ class VideoCardV extends StatelessWidget {
               iconSize: 17,
               videoItem: videoItem,
               onRemove: onRemove,
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildCoverStack(double maxWidth, double maxHeight) {
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        NetworkImgLayer(
+          src: videoItem.cover,
+          width: maxWidth,
+          height: maxHeight,
+          borderRadius: const .vertical(top: .circular(12)),
+        ),
+        if (videoItem.duration > 0)
+          PBadge(
+            bottom: 6,
+            right: 7,
+            size: .small,
+            type: .gray,
+            text: DurationUtils.formatDuration(
+              videoItem.duration,
             ),
           ),
       ],

@@ -97,6 +97,7 @@ git diff cb1773944 -- lib         # 和上游基线对比
 | PERF-21 | 新增 `DeferUntilRouteSettled`：页面进场动画结束后再构建视频页的相关推荐网格、动态/专栏/音乐等详情页的评论列表；播放器底部控制栏（`AppBarAni(lazy: true)`）首次显示时才构建 | ✅ |
 | PERF-22 | 视频评论区、楼中楼、推荐流、动态流、动态详情的 `scrollCacheExtent` 设为 0.5 屏 | ✅ |
 | PERF-23 | 评论正文 InlineSpan 按 (Content, Element, ColorScheme) 缓存，加载更多刷新列表时不再重新排版可见评论 | ✅ |
+| PERF-24 | 全链路流畅度与防回归优化：① `Skeleton` 去 120Hz `AnimationController` 与 `ShaderMask` `saveLayer`，并精简初始骨架数；② `NetworkImgLayer` 默认关闭 `120ms` 淡入/淡出、占位去 `Image.asset` 与内层双裁剪，推荐页去除整屏圆角裁剪，首页联动顶/底栏补 `RepaintBoundary` 且底栏动画减至 `250ms`；③ 新增 `PushTransitionGate`（450ms 兜底），视频页/直播间网络请求先发、MPV 原生播放器与弹幕延后至首次转场完成创建；`toVideoPage` 支持空 `cid` 秒进后在 `VideoDetailController.ensureCid()` 并发解析，卡片点击不再阻塞等待 `ab2cWithDimension`；④ 评论区/个人空间/搜索面板/收藏详情/历史页接入 `DeferUntilRouteSettled`（450ms 兜底），热门/搜索/收藏/历史/相关推荐容器补齐 `ScrollCacheExtent.viewport(0.5)`；⑤ 新增 `MemoizedScrollItem` + `listRevision` 隔离分页 `loadingState.refresh()` 导致的可视项全量重建，补齐主评论/楼中楼/动态评论提前 4 项预加载，拓展 `_cachedMessage` 至楼中楼预览，新增动态正文 `richNode` 弱引用缓存，并将多条目 `DynamicsDataModel.fromJson` 迁入隔离配置的 `compute()`；⑥ 高频网格卡片将列宽/定高下传替代卡内 `LayoutBuilder`（保 `memCacheWidth` 精确），静态化 `ZanButtonGrpc`/`ActionPanel` `ButtonStyle`、`StatWidget` `ColorScheme.of` 及 `RenderParagraphMore` 同宽重排版缓存 | ✅ |
 
 ## 四、界面调整
 

@@ -3,6 +3,7 @@ import 'dart:convert' show jsonDecode;
 import 'dart:io' show Platform;
 import 'dart:math' as math;
 
+import 'package:PiliPlus/common/widgets/defer_until_route_settled.dart';
 import 'package:PiliPlus/common/widgets/dialog/report.dart';
 import 'package:PiliPlus/common/widgets/flutter/text_field/controller.dart';
 import 'package:PiliPlus/http/constants.dart';
@@ -94,6 +95,8 @@ class LiveRoomController extends GetxController
   int roomId = Get.arguments;
   @override
   final plPlayerController = PlPlayerController.getInstance(isLive: true);
+  // [PATCH PERF-24] 直播间转场门禁
+  final PushTransitionGate pushGate = PushTransitionGate();
 
   void startService({bool startDM = true}) {
     _startLiveTimeTimer();
@@ -125,7 +128,29 @@ class LiveRoomController extends GetxController
     if (videoUrl == null) {
       return null;
     }
+    // [PATCH PERF-24] 推迟至首入转场结束后再触发 MPV 初始化与挂载
+    if (!pushGate.isSettled) {
+      return _deferredPlayerInit(
+        autoplay: autoplay,
+        autoFullScreenFlag: autoFullScreenFlag,
+      );
+    }
     return plPlayerController.setDataSource(
+      NetworkSource(videoSource: videoUrl!, audioSource: null),
+      isLive: true,
+      autoplay: autoplay,
+      isVertical: isPortrait.value,
+      autoFullScreenFlag: autoFullScreenFlag,
+    );
+  }
+
+  Future<void> _deferredPlayerInit({
+    required bool autoplay,
+    required bool autoFullScreenFlag,
+  }) async {
+    await pushGate.waitSettled();
+    if (isClosed || videoUrl == null) return;
+    await plPlayerController.setDataSource(
       NetworkSource(videoSource: videoUrl!, audioSource: null),
       isLive: true,
       autoplay: autoplay,
@@ -240,7 +265,11 @@ class LiveRoomController extends GetxController
     // 以服务端返回的码率为准
     currentQn.value = item.currentQn;
     videoUrl = VideoUtils.getLiveCdnUrl(item, index: liveUrlIndex);
-    return playerInit()?.whenComplete(_startSizeSub);
+    return playerInit()?.whenComplete(() {
+      if (!isClosed) {
+        _startSizeSub();
+      }
+    });
   }
 
   Future<void> queryLiveInfoH5() async {
@@ -286,6 +315,7 @@ class LiveRoomController extends GetxController
 
   @override
   void onClose() {
+    pushGate.dispose();
     stopService();
     super.onClose();
   }

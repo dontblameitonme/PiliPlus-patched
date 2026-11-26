@@ -289,23 +289,12 @@ abstract final class PageUtils {
           }
         }
 
-        try {
-          String bvid = archive.bvid!;
-          String cover = archive.cover!;
-          final res = await SearchHttp.ab2cWithDimension(bvid: bvid);
-          final cid = res?.cid;
-          if (cid != null) {
-            toVideoPage(
-              bvid: bvid,
-              cid: cid,
-              cover: cover,
-              dimension: res!.dimension,
-              title: archive.title,
-            );
-          }
-        } catch (err) {
-          SmartDialog.showToast(err.toString());
-        }
+        // [PATCH PERF-24] 立即推入视频页，由 VideoDetailController 并发解析 cid
+        toVideoPage(
+          bvid: archive.bvid!,
+          cover: archive.cover!,
+          title: archive.title,
+        );
         break;
 
       /// 专栏文章查看
@@ -348,20 +337,13 @@ abstract final class PageUtils {
       case 'DYNAMIC_TYPE_UGC_SEASON':
         final ugcSeason = item.modules.moduleDynamic!.major!.ugcSeason!;
         int aid = ugcSeason.aid!;
-        String bvid = IdUtils.av2bv(aid);
-        String cover = ugcSeason.cover!;
-        final res = await SearchHttp.ab2cWithDimension(bvid: bvid);
-        final cid = res?.cid;
-        if (cid != null) {
-          toVideoPage(
-            aid: aid,
-            bvid: bvid,
-            cid: cid,
-            cover: cover,
-            dimension: res!.dimension,
-            title: ugcSeason.title,
-          );
-        }
+        // [PATCH PERF-24] 立即推入视频页并发解析 cid
+        toVideoPage(
+          aid: aid,
+          bvid: IdUtils.av2bv(aid),
+          cover: ugcSeason.cover!,
+          title: ugcSeason.title,
+        );
         break;
 
       /// 番剧查看
@@ -522,7 +504,8 @@ abstract final class PageUtils {
     VideoType videoType = VideoType.ugc,
     int? aid,
     String? bvid,
-    required int cid,
+    int? cid,
+    int? part,
     int? seasonId,
     int? epId,
     int? pgcType,
@@ -536,10 +519,14 @@ abstract final class PageUtils {
     int? rootRpId,
     int? secondRpId,
   }) {
+    final resolvedAid = aid ?? IdUtils.bv2av(bvid!);
+    final resolvedBvid = bvid ?? IdUtils.av2bv(aid!);
     final arguments = {
-      'aid': aid ?? IdUtils.bv2av(bvid!),
-      'bvid': bvid ?? IdUtils.av2bv(aid!),
+      'aid': resolvedAid,
+      'bvid': resolvedBvid,
+      // [PATCH PERF-24] 允许无 cid 入口秒进视频页，由 VideoDetailController 并发解析 cid
       'cid': cid,
+      'part': ?part,
       'seasonId': ?seasonId,
       'epId': ?epId,
       'pgcType': ?pgcType,
@@ -548,7 +535,7 @@ abstract final class PageUtils {
       'progress': ?progress,
       'videoType': videoType,
       'isVertical': dimension?.isVertical ?? isVertical,
-      'heroTag': Utils.makeHeroTag(cid),
+      'heroTag': Utils.makeHeroTag(cid ?? resolvedBvid),
       rootRpIdKey: ?rootRpId,
       secondRpIdKey: ?secondRpId,
       ...?extraArguments,

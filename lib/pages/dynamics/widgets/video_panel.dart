@@ -15,6 +15,7 @@ Widget videoSeasonWidget(
   required DynamicItemModel item,
   required bool isSave,
   required bool isDetail,
+  double? maxWidth,
 }) {
   // type archive  ugcSeason
   // archive 视频/显示发布人
@@ -49,14 +50,23 @@ Widget videoSeasonWidget(
           Stack(
             clipBehavior: Clip.none,
             children: [
-              LayoutBuilder(
-                builder: (context, constraints) => NetworkImgLayer(
-                  width: constraints.maxWidth,
-                  height: constraints.maxWidth / Style.aspectRatio,
+              // [PATCH PERF-24] 一级动态卡片已知列宽时免去 LayoutBuilder
+              if (floor == 1 && maxWidth != null)
+                NetworkImgLayer(
+                  width: maxWidth - 24,
+                  height: (maxWidth - 24) / Style.aspectRatio,
                   src: cover,
                   quality: 40,
+                )
+              else
+                LayoutBuilder(
+                  builder: (context, constraints) => NetworkImgLayer(
+                    width: constraints.maxWidth,
+                    height: constraints.maxWidth / Style.aspectRatio,
+                    src: cover,
+                    quality: 40,
+                  ),
                 ),
-              ),
               if (video.badge?.text case final badge?)
                 PBadge(
                   text: badge,

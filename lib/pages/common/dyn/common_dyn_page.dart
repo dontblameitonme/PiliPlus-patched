@@ -4,6 +4,7 @@ import 'package:PiliPlus/common/style.dart';
 import 'package:PiliPlus/common/widgets/custom_icon.dart';
 import 'package:PiliPlus/common/widgets/defer_until_route_settled.dart';
 import 'package:PiliPlus/common/widgets/loading_widget/http_error.dart';
+import 'package:PiliPlus/common/widgets/memoized_scroll_item.dart';
 import 'package:PiliPlus/common/widgets/scaffold/mini_scaffold.dart';
 import 'package:PiliPlus/common/widgets/scaffold/simple_scaffold.dart';
 import 'package:PiliPlus/common/widgets/sliver/sliver_pinned_header.dart';
@@ -183,7 +184,7 @@ mixin CommonDynPageMixin<T extends StatefulWidget>
   static const _replySkeleton = SliverPrototypeExtentList(
     prototypeItem: VideoReplySkeleton(),
     delegate: SliverSingleChildDelegate(
-      count: 12,
+      count: 8,
       child: VideoReplySkeleton(),
     ),
   );
@@ -222,6 +223,10 @@ mixin CommonDynPageMixin<T extends StatefulWidget>
               if (index == response.length) {
                 return buildFooter();
               } else {
+                // [PATCH PERF-24] 动态/专栏评论提前 4 项预加载下一页
+                if (index >= response.length - 4) {
+                  controller.onLoadMore();
+                }
                 return buildReply(context, index, response[index]);
               }
             },
@@ -252,20 +257,24 @@ mixin CommonDynPageMixin<T extends StatefulWidget>
   }
 
   Widget buildReply(BuildContext context, int index, ReplyInfo item) {
-    return ReplyItemGrpc(
-      replyItem: item,
-      replyLevel: 1,
-      replyReply: (item, id) => throttleReplyReply(context, item, id),
-      onReply: controller.onReply,
-      onDelete: (item, subIndex) => controller.onRemove(index, item, subIndex),
-      upMid: controller.upMid,
-      onViewImage: hideFab,
-      onCheckReply: controller.onCheckReply,
-      onToggleTop: (item) => controller.onToggleTop(
-        item,
-        index,
-        controller.oid,
-        controller.replyType,
+    return MemoizedScrollItem(
+      data: (item, item.replies.length, item.count, item.replyControl.isUpTop),
+      revision: controller.listRevision,
+      builder: (_) => ReplyItemGrpc(
+        replyItem: item,
+        replyLevel: 1,
+        replyReply: (item, id) => throttleReplyReply(context, item, id),
+        onReply: controller.onReply,
+        onDelete: (item, subIndex) => controller.onRemove(index, item, subIndex),
+        upMid: controller.upMid,
+        onViewImage: hideFab,
+        onCheckReply: controller.onCheckReply,
+        onToggleTop: (item) => controller.onToggleTop(
+          item,
+          index,
+          controller.oid,
+          controller.replyType,
+        ),
       ),
     );
   }

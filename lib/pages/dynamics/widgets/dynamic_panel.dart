@@ -24,6 +24,8 @@ class DynamicPanel extends StatelessWidget {
   onSetPubSetting;
   final VoidCallback? onEdit;
   final ValueChanged<int>? onSetReplySubject;
+  // [PATCH PERF-24] 外部下传卡片宽，避免每卡嵌套 LayoutBuilder
+  final double? maxWidth;
 
   const DynamicPanel({
     super.key,
@@ -38,6 +40,7 @@ class DynamicPanel extends StatelessWidget {
     this.onSetPubSetting,
     this.onEdit,
     this.onSetReplySubject,
+    this.maxWidth,
   });
 
   @override
@@ -96,6 +99,7 @@ class DynamicPanel extends StatelessWidget {
               isDetail: isDetail,
               item: item,
               floor: 1,
+              maxWidth: maxWidth,
             ),
             const SizedBox(height: 2),
             if (!isDetail) ...[

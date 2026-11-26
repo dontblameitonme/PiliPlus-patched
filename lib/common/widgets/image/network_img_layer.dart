@@ -1,4 +1,3 @@
-import 'package:PiliPlus/common/assets.dart';
 import 'package:PiliPlus/common/style.dart';
 import 'package:PiliPlus/models/common/image_type.dart';
 import 'package:PiliPlus/utils/extension/num_ext.dart';
@@ -14,8 +13,9 @@ class NetworkImgLayer extends StatelessWidget {
     required this.width,
     required this.height,
     this.type = .def,
-    this.fadeOutDuration = const Duration(milliseconds: 120),
-    this.fadeInDuration = const Duration(milliseconds: 120),
+    // [PATCH PERF-24] 默认关闭淡入/淡出渐变动画，减少快速滑动时多图并发透明度合成
+    this.fadeOutDuration = Duration.zero,
+    this.fadeInDuration = Duration.zero,
     this.quality = 1,
     this.borderRadius = Style.mdRadius,
     this.getPlaceHolder,
@@ -55,7 +55,7 @@ class NetworkImgLayer extends StatelessWidget {
       }
     } else {
       return getPlaceHolder?.call() ??
-          _placeholder(context, isEmote: isEmote, isAvatar: isAvatar);
+          _placeholder(context, isEmote: isEmote, isAvatar: isAvatar, clip: !isEmote);
     }
   }
 
@@ -102,26 +102,22 @@ class NetworkImgLayer extends StatelessWidget {
     BuildContext context, {
     required bool isEmote,
     required bool isAvatar,
+    bool clip = false,
   }) {
-    return Container(
+    // [PATCH PERF-24] 占位改用轻量纯色块（去除了每次新建时的 Image.asset 解码，
+    // 外层已有 ClipOval/ClipRRect 时不再内部重复 Clip.antiAlias 裁剪）
+    final color = ColorScheme.of(context).onInverseSurface.withValues(alpha: 0.4);
+    final box = SizedBox(
       width: width,
       height: height,
-      clipBehavior: isEmote ? Clip.none : Clip.antiAlias,
-      decoration: BoxDecoration(
-        shape: isAvatar ? BoxShape.circle : BoxShape.rectangle,
-        color: ColorScheme.of(context).onInverseSurface.withValues(alpha: 0.4),
-        borderRadius: isEmote || isAvatar ? null : borderRadius,
-      ),
-      child: Center(
-        child: Image.asset(
-          isAvatar ? Assets.avatarPlaceHolder : Assets.loading,
-          width: width,
-          height: height,
-          cacheWidth: width.cacheSize(context),
-          colorBlendMode: reduce ? BlendMode.modulate : null,
-          color: reduce ? reduceLuxColor : null,
-        ),
-      ),
+      child: ColoredBox(color: color),
     );
+    if (!clip) {
+      return box;
+    }
+    if (isAvatar) {
+      return ClipOval(child: box);
+    }
+    return ClipRRect(borderRadius: borderRadius, child: box);
   }
 }

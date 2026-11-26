@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:PiliPlus/common/constants.dart';
 import 'package:PiliPlus/common/widgets/pair.dart';
+import 'package:PiliPlus/common/widgets/pendant_avatar.dart';
 import 'package:PiliPlus/http/api.dart';
 import 'package:PiliPlus/http/constants.dart';
 import 'package:PiliPlus/http/error_msg.dart';
@@ -30,6 +31,23 @@ import 'package:PiliPlus/utils/accounts.dart';
 import 'package:PiliPlus/utils/utils.dart';
 import 'package:PiliPlus/utils/wbi_sign.dart';
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart' show compute;
+
+DynamicsDataModel _parseDynamicsIsolate(
+  (
+    Map<String, dynamic>,
+    DynamicsTabType,
+    Set<int>?,
+    DynParseConfig,
+  ) args,
+) {
+  return DynamicsDataModel.fromJson(
+    args.$1,
+    type: args.$2,
+    tempBannedList: args.$3,
+    parseConfig: args.$4,
+  );
+}
 
 abstract final class DynamicsHttp {
   @pragma('vm:notify-debugger-on-exception')
@@ -48,11 +66,30 @@ abstract final class DynamicsHttp {
     final code = res.data['code'];
     if (code == 0) {
       try {
-        DynamicsDataModel data = DynamicsDataModel.fromJson(
-          res.data['data'],
-          type: type,
-          tempBannedList: tempBannedList,
-        );
+        // [PATCH PERF-24] 列表项 >= 4 时将动态重型树反序列化迁入后台 Isolate，
+        // 主线程仅提前读取只读配置传参，避免在子 Isolate 触发 Pref/Hive。
+        final rawData = res.data['data'] as Map<String, dynamic>;
+        final rawItems = rawData['items'];
+        final DynamicsDataModel data;
+        if (rawItems is List && rawItems.length >= 4) {
+          final parseConfig = (
+            banWordPattern: DynamicsDataModel.banWordForDyn.pattern,
+            antiGoodsDyn: DynamicsDataModel.antiGoodsDyn,
+            showDynDispute: ItemModulesModel.showDynDispute,
+            showDynInteraction: ItemModulesModel.showDynInteraction,
+            showDecorate: PendantAvatar.showDecorate,
+          );
+          data = await compute(
+            _parseDynamicsIsolate,
+            (rawData, type, tempBannedList, parseConfig),
+          );
+        } else {
+          data = DynamicsDataModel.fromJson(
+            rawData,
+            type: type,
+            tempBannedList: tempBannedList,
+          );
+        }
         if (data.loadNext == true) {
           return await followDynamic(
             type: type,

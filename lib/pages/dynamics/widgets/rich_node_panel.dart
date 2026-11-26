@@ -6,7 +6,6 @@ import 'package:PiliPlus/common/widgets/image/network_img_layer.dart';
 import 'package:PiliPlus/common/widgets/image_grid/image_grid_view.dart';
 import 'package:PiliPlus/http/dynamics.dart';
 import 'package:PiliPlus/http/loading_state.dart';
-import 'package:PiliPlus/http/search.dart';
 import 'package:PiliPlus/models/common/image_preview_type.dart'
     show SourceModel;
 import 'package:PiliPlus/models/dynamics/result.dart';
@@ -15,14 +14,56 @@ import 'package:PiliPlus/pages/dynamics/widgets/vote.dart';
 import 'package:PiliPlus/utils/page_utils.dart';
 import 'package:PiliPlus/utils/parse_string.dart';
 import 'package:flutter/foundation.dart' show kDebugMode;
-import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
 import 'package:get/get.dart';
 import 'package:material_ui/material_ui.dart';
 
 const _linkFoldedText = '网页链接';
 
+// [PATCH PERF-24] 仿照评论区 [PATCH PERF-23] 缓存动态正文的 TextSpan 与手势识别器树；
+// 使用 WeakReference(context) + (theme, floor, isDetail, isSave) 作为键，防止内存泄漏与状态/主题切换错乱。
+final Expando<(WeakReference<BuildContext>, ThemeData, int, bool, bool, TextSpan?)>
+_richNodeCache = Expando<
+  (WeakReference<BuildContext>, ThemeData, int, bool, bool, TextSpan?)
+>('dynRichNode');
+
 // 富文本
 TextSpan? richNode(
+  BuildContext context, {
+  required ThemeData theme,
+  required int floor,
+  required bool isDetail,
+  required bool isSave,
+  required DynamicItemModel item,
+}) {
+  final cached = _richNodeCache[item];
+  if (cached != null &&
+      identical(cached.$1.target, context) &&
+      identical(cached.$2, theme) &&
+      cached.$3 == floor &&
+      cached.$4 == isDetail &&
+      cached.$5 == isSave) {
+    return cached.$6;
+  }
+  final span = _buildRichNode(
+    context,
+    theme: theme,
+    floor: floor,
+    isDetail: isDetail,
+    isSave: isSave,
+    item: item,
+  );
+  _richNodeCache[item] = (
+    WeakReference(context),
+    theme,
+    floor,
+    isDetail,
+    isSave,
+    span,
+  );
+  return span;
+}
+
+TextSpan? _buildRichNode(
   BuildContext context, {
   required ThemeData theme,
   required int floor,
@@ -255,24 +296,7 @@ TextSpan? richNode(
                   text: '${i.text} ',
                   style: style,
                   recognizer: NoDeadlineTapGestureRecognizer()
-                    ..onTap = () async {
-                      try {
-                        final res = await SearchHttp.ab2cWithDimension(
-                          bvid: i.rid,
-                        );
-                        final cid = res?.cid;
-                        if (cid != null) {
-                          PageUtils.toVideoPage(
-                            bvid: i.rid,
-                            cid: cid,
-                            dimension: res!.dimension,
-                            // title: res.title,
-                          );
-                        }
-                      } catch (err) {
-                        SmartDialog.showToast(err.toString());
-                      }
-                    },
+                    ..onTap = () => PageUtils.toVideoPage(bvid: i.rid),
                 ),
               );
             break;

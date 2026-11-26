@@ -37,7 +37,7 @@ mixin DynMixin {
       return SliverGrid(
         gridDelegate: skeDelegate,
         delegate: const SliverSingleChildDelegate(
-          count: 10,
+          count: 6,
           child: DynamicCardSkeleton(),
         ),
       );
@@ -45,7 +45,7 @@ mixin DynMixin {
     return const SliverPrototypeExtentList(
       prototypeItem: DynamicCardSkeleton(),
       delegate: SliverSingleChildDelegate(
-        count: 10,
+        count: 6,
         child: DynamicCardSkeleton(),
       ),
     );

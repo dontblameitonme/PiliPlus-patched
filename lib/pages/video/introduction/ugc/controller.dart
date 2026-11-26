@@ -107,11 +107,6 @@ class UgcIntroController extends CommonIntroController with ReloadMixin {
         }
         return;
       }
-      videoPlayerServiceHandler?.onVideoDetailChange(
-        response,
-        cid.value,
-        heroTag,
-      );
       final currentDetail = videoDetail.value;
       if (currentDetail.ugcSeason?.id == response.ugcSeason?.id) {
         // keep reversed season
@@ -124,6 +119,18 @@ class UgcIntroController extends CommonIntroController with ReloadMixin {
           ..isPageReversed = currentDetail.isPageReversed;
       }
       videoDetail.value = response;
+      // [PATCH PERF-24] 若 cid 仍在并发解析，等待其完成后再匹配 _partIndex 与通知系统媒体中心
+      if (cid.value <= 0) {
+        await videoDetailCtr.ensureCid();
+        if (isClosed) return;
+      }
+      if (cid.value > 0) {
+        videoPlayerServiceHandler?.onVideoDetailChange(
+          response,
+          cid.value,
+          heroTag,
+        );
+      }
       updateIndex(data: response);
       try {
         if (videoDetailCtr.cover.value.isEmpty ||

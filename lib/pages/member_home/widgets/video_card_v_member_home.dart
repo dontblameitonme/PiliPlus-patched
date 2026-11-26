@@ -2,10 +2,8 @@ import 'package:PiliPlus/common/style.dart';
 import 'package:PiliPlus/common/widgets/badge.dart';
 import 'package:PiliPlus/common/widgets/image/image_save.dart';
 import 'package:PiliPlus/common/widgets/image/network_img_layer.dart';
-import 'package:PiliPlus/http/search.dart';
 import 'package:PiliPlus/models/common/badge_type.dart';
 import 'package:PiliPlus/models_new/space/space_archive/item.dart';
-import 'package:PiliPlus/models_new/video/video_detail/dimension.dart';
 import 'package:PiliPlus/utils/app_scheme.dart';
 import 'package:PiliPlus/utils/duration_utils.dart';
 import 'package:PiliPlus/utils/id_utils.dart';
@@ -41,24 +39,13 @@ class VideoCardVMemberHome extends StatelessWidget {
         }
 
         bvid ??= IdUtils.av2bv(int.parse(aid!));
-        int? cid = videoItem.cid;
-        Dimension? dimension;
-        if (cid == null) {
-          if (await SearchHttp.ab2cWithDimension(aid: aid, bvid: bvid)
-              case final res?) {
-            cid = res.cid;
-            dimension = res.dimension;
-          }
-        }
-        if (cid != null) {
-          PageUtils.toVideoPage(
-            bvid: bvid,
-            cid: cid,
-            cover: videoItem.cover,
-            title: videoItem.title,
-            dimension: dimension,
-          );
-        }
+        // [PATCH PERF-24] 立即推入视频页并发解析 cid
+        PageUtils.toVideoPage(
+          bvid: bvid,
+          cid: videoItem.cid,
+          cover: videoItem.cover,
+          title: videoItem.title,
+        );
         break;
 
       default:

@@ -1,6 +1,7 @@
 import 'package:PiliPlus/common/widgets/flutter/refresh_indicator.dart';
 import 'package:PiliPlus/common/widgets/image/network_img_layer.dart';
 import 'package:PiliPlus/common/widgets/loading_widget/http_error.dart';
+import 'package:PiliPlus/common/widgets/memoized_scroll_item.dart';
 import 'package:PiliPlus/common/widgets/scaffold/simple_scaffold.dart';
 import 'package:PiliPlus/common/widgets/video_card/video_card_h.dart';
 import 'package:PiliPlus/common/widgets/view_safe_area.dart';
@@ -12,6 +13,7 @@ import 'package:PiliPlus/pages/hot/controller.dart';
 import 'package:PiliPlus/pages/rank/view.dart';
 import 'package:PiliPlus/utils/grid.dart';
 import 'package:PiliPlus/utils/storage_pref.dart';
+import 'package:flutter/rendering.dart' show ScrollCacheExtent;
 import 'package:get/get.dart';
 import 'package:material_ui/material_ui.dart';
 
@@ -63,6 +65,8 @@ class _HotPageState extends State<HotPage>
       key: controller.refreshKey,
       onRefresh: controller.onRefresh,
       child: CustomScrollView(
+        // [PATCH PERF-24] 视口外半屏预建
+        scrollCacheExtent: const ScrollCacheExtent.viewport(0.5),
         physics: const AlwaysScrollableScrollPhysics(),
         controller: controller.scrollController,
         slivers: [
@@ -132,11 +136,19 @@ class _HotPageState extends State<HotPage>
                   if (index >= response.length - 4) {
                     controller.onLoadMore();
                   }
-                  return VideoCardH(
-                    videoItem: response[index],
-                    onRemove: () => controller.loadingState
-                      ..value.data!.removeAt(index)
-                      ..refresh(),
+                  final item = response[index];
+                  return MemoizedScrollItem(
+                    data: item,
+                    revision: controller.listRevision,
+                    builder: (_) => VideoCardH(
+                      videoItem: item,
+                      onRemove: () {
+                        controller.listRevision++;
+                        controller.loadingState
+                          ..value.data!.removeAt(index)
+                          ..refresh();
+                      },
+                    ),
                   );
                 },
                 itemCount: response.length,

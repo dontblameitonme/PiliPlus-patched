@@ -99,51 +99,47 @@ class FavVideoCardH extends StatelessWidget {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              AspectRatio(
-                aspectRatio: Style.aspectRatio,
-                child: LayoutBuilder(
-                  builder: (context, boxConstraints) {
-                    double maxWidth = boxConstraints.maxWidth;
-                    double maxHeight = boxConstraints.maxHeight;
-                    return Stack(
-                      clipBehavior: Clip.none,
-                      children: [
-                        NetworkImgLayer(
-                          src: item.cover,
-                          width: maxWidth,
-                          height: maxHeight,
+              // [PATCH PERF-24] GridMixin 定高横卡直接使用 160x100 尺寸，移除 LayoutBuilder
+              SizedBox(
+                width: 100.0 * Style.aspectRatio,
+                height: 100.0,
+                child: Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    NetworkImgLayer(
+                      src: item.cover,
+                      width: 100.0 * Style.aspectRatio,
+                      height: 100.0,
+                    ),
+                    PBadge(
+                      text: DurationUtils.formatDuration(item.duration),
+                      right: 6.0,
+                      bottom: 6.0,
+                      type: PBadgeType.gray,
+                    ),
+                    if (item.type == 12)
+                      const PBadge(
+                        text: '音频',
+                        top: 6.0,
+                        right: 6.0,
+                        type: PBadgeType.gray,
+                      )
+                    else
+                      PBadge(
+                        text: item.ogv?.typeName,
+                        top: 6.0,
+                        right: 6.0,
+                        bottom: null,
+                        left: null,
+                      ),
+                    if (!isSort)
+                      Positioned.fill(
+                        child: selectMask(
+                          colorScheme,
+                          item.checked,
                         ),
-                        PBadge(
-                          text: DurationUtils.formatDuration(item.duration),
-                          right: 6.0,
-                          bottom: 6.0,
-                          type: PBadgeType.gray,
-                        ),
-                        if (item.type == 12)
-                          const PBadge(
-                            text: '音频',
-                            top: 6.0,
-                            right: 6.0,
-                            type: PBadgeType.gray,
-                          )
-                        else
-                          PBadge(
-                            text: item.ogv?.typeName,
-                            top: 6.0,
-                            right: 6.0,
-                            bottom: null,
-                            left: null,
-                          ),
-                        if (!isSort)
-                          Positioned.fill(
-                            child: selectMask(
-                              colorScheme,
-                              item.checked,
-                            ),
-                          ),
-                      ],
-                    );
-                  },
+                      ),
+                  ],
                 ),
               ),
               const SizedBox(width: 10),

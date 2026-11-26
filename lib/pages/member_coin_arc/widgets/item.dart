@@ -4,7 +4,6 @@ import 'package:PiliPlus/common/widgets/image/image_save.dart';
 import 'package:PiliPlus/common/widgets/image/network_img_layer.dart';
 import 'package:PiliPlus/common/widgets/stat/stat.dart';
 import 'package:PiliPlus/common/widgets/video_card/video_card_v.dart';
-import 'package:PiliPlus/http/search.dart';
 import 'package:PiliPlus/models/common/badge_type.dart';
 import 'package:PiliPlus/models/common/stat_type.dart';
 import 'package:PiliPlus/models_new/member/coin_like_arc/item.dart';
@@ -31,7 +30,7 @@ class MemberCoinLikeItem extends StatelessWidget {
     );
     return Card(
       child: InkWell(
-        onTap: () async {
+        onTap: () {
           if (item.isPgc == true) {
             if (item.uri?.isNotEmpty == true) {
               PageUtils.viewPgcFromUri(item.uri!);
@@ -40,17 +39,12 @@ class MemberCoinLikeItem extends StatelessWidget {
           }
 
           if (item.param != null) {
-            final res = await SearchHttp.ab2cWithDimension(aid: item.param);
-            final cid = res?.cid;
-            if (cid != null) {
-              PageUtils.toVideoPage(
-                aid: int.parse(item.param!),
-                cid: cid,
-                cover: item.cover,
-                title: item.title,
-                dimension: res!.dimension,
-              );
-            }
+            // [PATCH PERF-24] 立即推入视频页并发解析 cid
+            PageUtils.toVideoPage(
+              aid: int.parse(item.param!),
+              cover: item.cover,
+              title: item.title,
+            );
           }
         },
         onLongPress: onLongPress,

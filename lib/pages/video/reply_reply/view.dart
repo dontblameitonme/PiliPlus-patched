@@ -4,6 +4,7 @@ import 'package:PiliPlus/common/style.dart';
 import 'package:PiliPlus/common/widgets/dialog/dialog.dart';
 import 'package:PiliPlus/common/widgets/flutter/refresh_indicator.dart';
 import 'package:PiliPlus/common/widgets/loading_widget/http_error.dart';
+import 'package:PiliPlus/common/widgets/memoized_scroll_item.dart';
 import 'package:PiliPlus/common/widgets/scaffold/mini_scaffold.dart';
 import 'package:PiliPlus/common/widgets/scaffold/simple_scaffold.dart';
 import 'package:PiliPlus/common/widgets/simple_colored_box.dart';
@@ -396,8 +397,16 @@ class _VideoReplyReplyPanelState extends State<VideoReplyReplyPanel>
               if (index == response.length) {
                 return buildFooter();
               }
-
-              final child = _replyItem(context, response[index], index);
+              // [PATCH PERF-24] 楼中楼提前 4 项预加载下一页 + 分页防全量重建
+              if (index >= response.length - 4) {
+                controller.onLoadMore();
+              }
+              final item = response[index];
+              final child = MemoizedScrollItem(
+                data: (item, item.replies.length, item.count),
+                revision: controller.listRevision,
+                builder: (context) => _replyItem(context, item, index),
+              );
               if (jumpIndex == index) {
                 return controller.colorAnimWrapper(theme.colorScheme, child);
               }

@@ -1,4 +1,5 @@
 import 'package:PiliPlus/common/widgets/button/icon_button.dart';
+import 'package:PiliPlus/common/widgets/defer_until_route_settled.dart';
 import 'package:PiliPlus/common/widgets/dialog/dialog.dart';
 import 'package:PiliPlus/common/widgets/flutter/pop_scope.dart';
 import 'package:PiliPlus/common/widgets/flutter/refresh_indicator.dart';
@@ -20,6 +21,7 @@ import 'package:PiliPlus/utils/grid.dart';
 import 'package:PiliPlus/utils/request_utils.dart';
 import 'package:PiliPlus/utils/share_utils.dart';
 import 'package:PiliPlus/utils/utils.dart';
+import 'package:flutter/rendering.dart' show ScrollCacheExtent;
 import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
 import 'package:get/get.dart';
 import 'package:material_ui/material_ui.dart';
@@ -104,6 +106,8 @@ class _FavDetailPageState extends State<FavDetailPage>
             body: refreshIndicator(
               onRefresh: controller.onRefresh,
               child: CustomScrollView(
+                // [PATCH PERF-24] 视口外半屏预建
+                scrollCacheExtent: const ScrollCacheExtent.viewport(0.5),
                 physics: const AlwaysScrollableScrollPhysics(),
                 controller: controller.scrollController,
                 slivers: [
@@ -479,31 +483,34 @@ class _FavDetailPageState extends State<FavDetailPage>
       Loading() => gridSkeleton,
       Success(:final response) =>
         response != null && response.isNotEmpty
-            ? SliverGrid.builder(
-                gridDelegate: gridDelegate,
-                itemBuilder: (context, index) {
-                  if (index == response.length) {
-                    controller.onLoadMore();
-                    return Container(
-                      height: 60,
-                      alignment: Alignment.center,
-                      child: Text(
-                        controller.isEnd ? '没有更多了' : '加载中...',
-                        style: TextStyle(
-                          color: theme.colorScheme.outline,
-                          fontSize: 13,
+            ? DeferUntilRouteSettled(
+                placeholder: gridSkeleton,
+                builder: (_) => SliverGrid.builder(
+                  gridDelegate: gridDelegate,
+                  itemBuilder: (context, index) {
+                    if (index == response.length) {
+                      controller.onLoadMore();
+                      return Container(
+                        height: 60,
+                        alignment: Alignment.center,
+                        child: Text(
+                          controller.isEnd ? '没有更多了' : '加载中...',
+                          style: TextStyle(
+                            color: theme.colorScheme.outline,
+                            fontSize: 13,
+                          ),
                         ),
-                      ),
+                      );
+                    }
+                    FavDetailItemModel item = response[index];
+                    return FavVideoCardH(
+                      item: item,
+                      index: index,
+                      ctr: controller,
                     );
-                  }
-                  FavDetailItemModel item = response[index];
-                  return FavVideoCardH(
-                    item: item,
-                    index: index,
-                    ctr: controller,
-                  );
-                },
-                itemCount: response.length + 1,
+                  },
+                  itemCount: response.length + 1,
+                ),
               )
             : HttpError(onReload: controller.onReload),
       Error(:final errMsg) => HttpError(

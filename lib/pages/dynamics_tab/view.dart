@@ -1,7 +1,9 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:PiliPlus/common/widgets/flutter/refresh_indicator.dart';
 import 'package:PiliPlus/common/widgets/loading_widget/http_error.dart';
+import 'package:PiliPlus/common/widgets/memoized_scroll_item.dart';
 import 'package:PiliPlus/http/loading_state.dart';
 import 'package:PiliPlus/models/common/dynamic/dynamics_type.dart';
 import 'package:PiliPlus/models/dynamics/result.dart';
@@ -75,20 +77,45 @@ class _DynamicsTabPageState extends State<DynamicsTabPage>
       Loading() => dynSkeleton,
       Success(:final response) =>
         response != null && response.isNotEmpty
-            ? GlobalData().dynamicsWaterfallFlow
-                  ? SliverMasonryGrid(
-                      crossAxisSpacing: 4,
+            // [PATCH PERF-24] 仅在外层 SliverLayoutBuilder 计算一次卡片列宽并下传，消除动态卡片 LayoutBuilder
+            ? SliverLayoutBuilder(
+                builder: (context, constraints) {
+                  final crossExtent = constraints.crossAxisExtent;
+                  final double cardWidth;
+                  if (GlobalData().dynamicsWaterfallFlow) {
+                    const crossSpacing = 4.0;
+                    final crossCount = math.max(
+                      1,
+                      (crossExtent /
+                              (dynGridDelegate.maxCrossAxisExtent +
+                                  crossSpacing))
+                          .ceil(),
+                    );
+                    cardWidth =
+                        math.max(
+                          0.0,
+                          crossExtent - crossSpacing * (crossCount - 1),
+                        ) /
+                        crossCount;
+                    return SliverMasonryGrid(
+                      crossAxisSpacing: crossSpacing,
                       gridDelegate: dynGridDelegate,
                       delegate: SliverChildBuilderDelegate(
-                        (context, index) => _itemBuilder(response, index),
+                        (context, index) =>
+                            _itemBuilder(response, index, cardWidth),
                         childCount: response.length,
                       ),
-                    )
-                  : SliverList.builder(
+                    );
+                  } else {
+                    cardWidth = crossExtent;
+                    return SliverList.builder(
                       itemBuilder: (context, index) =>
-                          _itemBuilder(response, index),
+                          _itemBuilder(response, index, cardWidth),
                       itemCount: response.length,
-                    )
+                    );
+                  }
+                },
+              )
             : HttpError(onReload: controller.onReload),
       Error(:final errMsg) => HttpError(
         errMsg: errMsg,
@@ -97,17 +124,26 @@ class _DynamicsTabPageState extends State<DynamicsTabPage>
     };
   }
 
-  Widget _itemBuilder(List<DynamicItemModel> list, int index) {
+  Widget _itemBuilder(
+    List<DynamicItemModel> list,
+    int index,
+    double cardWidth,
+  ) {
     // [PATCH PERF-07] 提前 4 项预加载下一页（上游为 index == length - 1）
     if (index >= list.length - 4) {
       controller.onLoadMore();
     }
     final item = list[index];
-    return DynamicPanel(
-      item: item,
-      onRemove: (idStr) => controller.onRemove(index, idStr),
-      onBlock: () => controller.onBlock(index),
-      onUnfold: () => controller.onUnfold(item, index),
+    return MemoizedScrollItem(
+      data: (item, item.visible, item.modules.moduleFold == null, cardWidth),
+      revision: controller.listRevision,
+      builder: (_) => DynamicPanel(
+        item: item,
+        maxWidth: cardWidth,
+        onRemove: (idStr) => controller.onRemove(index, idStr),
+        onBlock: () => controller.onBlock(index),
+        onUnfold: () => controller.onUnfold(item, index),
+      ),
     );
   }
 }

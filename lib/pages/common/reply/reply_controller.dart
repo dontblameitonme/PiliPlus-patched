@@ -303,6 +303,7 @@ abstract class ReplyController<R> extends CommonListController<R, ReplyInfo> {
                       ..count += 1
                       ..replies.add(replyInfo);
                   }
+                  listRevision++;
                   loadingState.refresh();
                 }
               } else {
@@ -336,6 +337,7 @@ abstract class ReplyController<R> extends CommonListController<R, ReplyInfo> {
         ..replies.removeAt(subIndex);
     }
     count.value -= 1;
+    listRevision++;
     loadingState.refresh();
   }
 
@@ -371,6 +373,7 @@ abstract class ReplyController<R> extends CommonListController<R, ReplyInfo> {
           ..first.replyControl.isUpTop = false
           ..insert(0, list.removeAt(index));
       }
+      listRevision++;
       loadingState.refresh();
       SmartDialog.showToast('${isUpTop ? '取消' : ''}置顶成功');
     } else {

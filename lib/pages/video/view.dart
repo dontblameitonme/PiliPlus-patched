@@ -48,6 +48,7 @@ import 'package:PiliPlus/pages/video/widgets/header_control.dart';
 import 'package:PiliPlus/pages/video/widgets/intro_layout.dart';
 import 'package:PiliPlus/pages/video/widgets/player_focus.dart';
 import 'package:PiliPlus/plugin/pl_player/controller.dart';
+import 'package:flutter/rendering.dart' show ScrollCacheExtent;
 import 'package:PiliPlus/plugin/pl_player/models/fullscreen_mode.dart';
 import 'package:PiliPlus/plugin/pl_player/models/play_repeat.dart';
 import 'package:PiliPlus/plugin/pl_player/models/play_status.dart';
@@ -484,6 +485,8 @@ class _VideoDetailPageVState extends State<VideoDetailPageV>
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
+    // [PATCH PERF-24] 绑定首次进场路由动画，通知播放器推迟到转场结束后创建
+    videoDetailController.pushGate.attachRoute(context);
     if (videoDetailController.removeSafeArea) {
       padding = .zero;
     } else {
@@ -1263,15 +1266,19 @@ class _VideoDetailPageVState extends State<VideoDetailPageV>
               danmuWidget: isPipMode && pipNoDanmaku
                   ? null
                   : Obx(
-                      () => PlDanmaku(
-                        key: ValueKey(videoDetailController.cid.value),
-                        isPipMode: isPipMode,
-                        cid: videoDetailController.cid.value,
-                        playerController: plPlayerController!,
-                        isFullScreen: plPlayerController!.isFullScreen.value,
-                        isFileSource: videoDetailController.isFileSource,
-                        size: Size(width, height),
-                      ),
+                      () {
+                        final cid = videoDetailController.cid.value;
+                        if (cid <= 0) return const SizedBox.shrink();
+                        return PlDanmaku(
+                          key: ValueKey(cid),
+                          isPipMode: isPipMode,
+                          cid: cid,
+                          playerController: plPlayerController!,
+                          isFullScreen: plPlayerController!.isFullScreen.value,
+                          isFileSource: videoDetailController.isFileSource,
+                          size: Size(width, height),
+                        );
+                      },
                     ),
               showEpisodes: showEpisodes,
               showViewPoints: showViewPoints,
@@ -1672,6 +1679,8 @@ class _VideoDetailPageVState extends State<VideoDetailPageV>
     }
 
     Widget child = CustomScrollView(
+      // [PATCH PERF-24] 简介与相关推荐页滚动预构建半屏
+      scrollCacheExtent: const ScrollCacheExtent.viewport(0.5),
       key: const PageStorageKey(CommonIntroController),
       controller: needCtr
           ? videoDetailController.effectiveIntroScrollCtr

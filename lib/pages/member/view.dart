@@ -3,6 +3,7 @@ import 'dart:math' as math;
 
 import 'package:PiliPlus/common/style.dart';
 import 'package:PiliPlus/common/widgets/button/icon_button.dart';
+import 'package:PiliPlus/common/widgets/defer_until_route_settled.dart';
 import 'package:PiliPlus/common/widgets/dialog/report_member.dart';
 import 'package:PiliPlus/common/widgets/dynamic_sliver_app_bar/dynamic_sliver_app_bar.dart';
 import 'package:PiliPlus/common/widgets/gesture/tap_gesture_recognizer.dart';
@@ -159,7 +160,13 @@ class _MemberPageState extends State<MemberPage> {
                               ),
                             ),
                           ),
-                        Expanded(child: _buildBody),
+                        Expanded(
+                          // [PATCH PERF-24] 路由推入期间先让顶栏/用户信息完成过渡，再挂载重型 TabBarView
+                          child: DeferUntilRouteSettled(
+                            placeholder: const SizedBox.shrink(),
+                            builder: (_) => _buildBody,
+                          ),
+                        ),
                       ],
                     ),
                   )

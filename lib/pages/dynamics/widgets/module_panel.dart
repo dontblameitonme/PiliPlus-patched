@@ -39,6 +39,7 @@ Widget module(
   required DynamicItemModel item,
   required bool isSave,
   required bool isDetail,
+  double? maxWidth,
 }) {
   final moduleDynamic = item.modules.moduleDynamic;
   final major = moduleDynamic?.major;
@@ -75,6 +76,7 @@ Widget module(
         floor: floor,
         isSave: isSave,
         isDetail: isDetail,
+        maxWidth: maxWidth,
       );
     // 转发
     case 'DYNAMIC_TYPE_FORWARD':
@@ -94,6 +96,7 @@ Widget module(
         isDetail: isDetail,
         item: item,
         floor: floor,
+        maxWidth: maxWidth,
       );
     // 直播
     case 'DYNAMIC_TYPE_LIVE':
@@ -308,6 +311,7 @@ Widget module(
         isDetail: isDetail,
         item: item,
         floor: floor,
+        maxWidth: maxWidth,
       );
 
     default:

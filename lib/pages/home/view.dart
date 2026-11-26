@@ -107,18 +107,21 @@ class _HomePageState extends CommonPageState<HomePage>
     );
     if (_homeController.hideTopBar) {
       if (_mainController.barOffset case final barOffset?) {
-        return Obx(
-          () {
-            final offset = barOffset.value;
-            return CustomHeightWidget(
-              offset: Offset(0, -offset),
-              height: Style.topBarHeight - offset,
-              child: Padding(
-                padding: padding,
-                child: child,
-              ),
-            );
-          },
+        // [PATCH PERF-24] 顶栏滑动偏移同步包裹 RepaintBoundary，避免逐像素重绘波及父层
+        return RepaintBoundary(
+          child: Obx(
+            () {
+              final offset = barOffset.value;
+              return CustomHeightWidget(
+                offset: Offset(0, -offset),
+                height: Style.topBarHeight - offset,
+                child: Padding(
+                  padding: padding,
+                  child: child,
+                ),
+              );
+            },
+          ),
         );
       }
       if (_homeController.showTopBar case final showTopBar?) {

@@ -18,9 +18,10 @@ class StatWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    Color color =
+    // [PATCH PERF-24] 使用 ColorScheme.of 避免订阅整个 ThemeData
+    final color =
         this.color ??
-        Theme.of(context).colorScheme.outline.withValues(alpha: 0.8);
+        ColorScheme.of(context).outline.withValues(alpha: 0.8);
     return Row(
       spacing: 2,
       mainAxisSize: MainAxisSize.min,

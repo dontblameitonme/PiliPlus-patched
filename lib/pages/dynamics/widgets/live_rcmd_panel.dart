@@ -14,6 +14,7 @@ Widget liveRcmdPanel(
   required DynamicItemModel item,
   required bool isDetail,
   Function(List<String>, int)? callback,
+  double? maxWidth,
 }) {
   DynamicLiveModel? liveRcmd = item.modules.moduleDynamic?.major?.liveRcmd;
   if (liveRcmd == null) {
@@ -33,14 +34,23 @@ Widget liveRcmdPanel(
         Stack(
           clipBehavior: Clip.none,
           children: [
-            LayoutBuilder(
-              builder: (context, constraints) => NetworkImgLayer(
-                width: constraints.maxWidth,
-                height: constraints.maxWidth / Style.aspectRatio,
+            // [PATCH PERF-24] 一级动态卡片已知列宽时免去 LayoutBuilder
+            if (floor == 1 && maxWidth != null)
+              NetworkImgLayer(
+                width: maxWidth - 24,
+                height: (maxWidth - 24) / Style.aspectRatio,
                 src: liveRcmd.cover,
                 quality: 40,
+              )
+            else
+              LayoutBuilder(
+                builder: (context, constraints) => NetworkImgLayer(
+                  width: constraints.maxWidth,
+                  height: constraints.maxWidth / Style.aspectRatio,
+                  src: liveRcmd.cover,
+                  quality: 40,
+                ),
               ),
-            ),
             PBadge(
               text: liveRcmd.watchedShow?.textLarge,
               top: 6,

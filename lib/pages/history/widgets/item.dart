@@ -1,10 +1,8 @@
 import 'package:PiliPlus/common/style.dart';
 import 'package:PiliPlus/common/widgets/image/network_img_layer.dart';
 import 'package:PiliPlus/common/widgets/select_mask.dart';
-import 'package:PiliPlus/http/search.dart';
 import 'package:PiliPlus/http/user.dart';
 import 'package:PiliPlus/models_new/history/list.dart';
-import 'package:PiliPlus/models_new/video/video_detail/dimension.dart';
 import 'package:PiliPlus/pages/article/view.dart';
 import 'package:PiliPlus/pages/common/multi_select/base.dart';
 import 'package:PiliPlus/utils/date_utils.dart';
@@ -60,34 +58,30 @@ class HistoryItem extends StatelessWidget {
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  AspectRatio(
-                    aspectRatio: Style.aspectRatio,
-                    child: LayoutBuilder(
-                      builder: (context, boxConstraints) {
-                        double maxWidth = boxConstraints.maxWidth;
-                        double maxHeight = boxConstraints.maxHeight;
-                        return Stack(
-                          clipBehavior: Clip.none,
-                          children: [
-                            NetworkImgLayer(
-                              src: item.cover?.isNotEmpty == true
-                                  ? item.cover
-                                  : item.covers?.firstOrNull ?? '',
-                              width: maxWidth,
-                              height: maxHeight,
-                            ),
-                            ?item.label,
-                            if (hasDuration)
-                              ...item.progressIndicator(theme.colorScheme),
-                            Positioned.fill(
-                              child: selectMask(
-                                theme.colorScheme,
-                                item.checked,
-                              ),
-                            ),
-                          ],
-                        );
-                      },
+                  // [PATCH PERF-24] GridMixin 定高横卡直接使用 160x100 尺寸，移除 LayoutBuilder
+                  SizedBox(
+                    width: 100.0 * Style.aspectRatio,
+                    height: 100.0,
+                    child: Stack(
+                      clipBehavior: Clip.none,
+                      children: [
+                        NetworkImgLayer(
+                          src: item.cover?.isNotEmpty == true
+                              ? item.cover
+                              : item.covers?.firstOrNull ?? '',
+                          width: 100.0 * Style.aspectRatio,
+                          height: 100.0,
+                        ),
+                        ?item.label,
+                        if (hasDuration)
+                          ...item.progressIndicator(theme.colorScheme),
+                        Positioned.fill(
+                          child: selectMask(
+                            theme.colorScheme,
+                            item.checked,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                   const SizedBox(width: 10),
@@ -248,30 +242,15 @@ Future<void> onPushHistory(HistoryItemModel item) async {
   } else {
     final aid = item.history.oid!;
     final bvid = item.history.bvid ?? IdUtils.av2bv(aid);
-    int? cid = item.history.cid;
-    Dimension? dimension;
-    if (cid == null) {
-      if (await SearchHttp.ab2cWithDimension(
-            aid: aid,
-            bvid: bvid,
-            part: item.history.page,
-          )
-          case final res?) {
-        cid = res.cid;
-        dimension = res.dimension;
-      }
-    }
-    if (cid != null) {
-      // TODO: dimension
-      PageUtils.toVideoPage(
-        aid: aid,
-        bvid: bvid,
-        cid: cid,
-        cover: item.cover,
-        title: item.title,
-        dimension: dimension,
-        progress: item.playbackProgress,
-      );
-    }
+    // [PATCH PERF-24] 立即推入视频页并传递 part 供控制器异步解析对应分P cid
+    PageUtils.toVideoPage(
+      aid: aid,
+      bvid: bvid,
+      cid: item.history.cid,
+      part: item.history.page,
+      cover: item.cover,
+      title: item.title,
+      progress: item.playbackProgress,
+    );
   }
 }

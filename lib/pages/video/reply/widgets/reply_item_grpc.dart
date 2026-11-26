@@ -991,7 +991,8 @@ class ReplyItemGrpc extends StatelessWidget {
                 const TextSpan(text: ': ')
               else if (childReply.mid != upMid)
                 const TextSpan(text: ' '),
-              _buildMessage(
+              // [PATCH PERF-24] 二级回复预览同样复用 _cachedMessage，避免重复正则表达式与 TextSpan 构建
+              _cachedMessage(
                 context,
                 colorScheme,
                 childReply.content,

@@ -112,6 +112,14 @@ abstract class CommonIntroController extends GetxController
       return;
     }
     _onlineTotalFetched = true;
+    // [PATCH PERF-24] 若通过无 cid 入口秒进，等待 cid 就绪后再查询在线观看人数
+    if (cid.value <= 0) {
+      final resolved = await videoDetailCtr.ensureCid();
+      if (isClosed || resolved == null || resolved <= 0) {
+        _onlineTotalFetched = false;
+        return;
+      }
+    }
     final result = await VideoHttp.onlineTotal(
       aid: aid,
       bvid: bvid,
@@ -154,6 +162,11 @@ abstract class CommonIntroController extends GetxController
   }
 
   Future<void> queryVideoTags() async {
+    // [PATCH PERF-24] 确保 cid > 0 后再查询标签
+    if (cid.value <= 0) {
+      final resolved = await videoDetailCtr.ensureCid();
+      if (isClosed || resolved == null || resolved <= 0) return;
+    }
     final result = await UserHttp.videoTags(bvid: bvid, cid: cid.value);
     videoTags.value = result.dataOrNull;
   }

@@ -56,6 +56,7 @@ class RenderParagraphMore extends RenderParagraph {
     recognizer: _tapGestureRecognizer,
   );
   TextPainter? _morePainter;
+  double? _moreLaidOutWidth;
 
   bool didOverflowHeight = false;
 
@@ -64,9 +65,8 @@ class RenderParagraphMore extends RenderParagraph {
     if (textPainter.textScaler == value) {
       return;
     }
-    _morePainter
-      ?..textScaler = value
-      ..layout();
+    _morePainter?.textScaler = value;
+    _moreLaidOutWidth = null;
     super.textScaler = value;
   }
 
@@ -79,9 +79,8 @@ class RenderParagraphMore extends RenderParagraph {
         case RenderComparison.paint:
           _morePainter!.text = textSpan;
         case RenderComparison.layout:
-          _morePainter!
-            ..text = textSpan
-            ..layout();
+          _morePainter!.text = textSpan;
+          _moreLaidOutWidth = null;
         default:
       }
     }
@@ -96,13 +95,17 @@ class RenderParagraphMore extends RenderParagraph {
       if (_onShowMore != null) {
         _tapGestureRecognizer ??= TapGestureRecognizer()..onTap = _onShowMore;
       }
-      // [PATCH BUG-20] 每次布局都重新 layout（适配宽度变化）
-      (_morePainter ??= TextPainter(
-        text: _moreTextSpan(),
-        textDirection: textDirection,
-        textScaler: textScaler,
-        locale: locale,
-      )).layout(maxWidth: constraints.maxWidth);
+      // [PATCH PERF-24] / [PATCH BUG-20] 仅在文本/缩放/约束宽度变化时重新 layout
+      final maxWidth = constraints.maxWidth;
+      if (_morePainter == null || _moreLaidOutWidth != maxWidth) {
+        (_morePainter ??= TextPainter(
+          text: _moreTextSpan(),
+          textDirection: textDirection,
+          textScaler: textScaler,
+          locale: locale,
+        )).layout(maxWidth: maxWidth);
+        _moreLaidOutWidth = maxWidth;
+      }
       size = Size(
         size.width,
         constraints.constrainHeight(size.height + _morePainter!.height),
@@ -146,6 +149,7 @@ class RenderParagraphMore extends RenderParagraph {
     _tapGestureRecognizer = null;
     _morePainter?.dispose();
     _morePainter = null;
+    _moreLaidOutWidth = null;
     super.dispose();
   }
 }

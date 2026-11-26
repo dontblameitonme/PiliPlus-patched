@@ -5,6 +5,7 @@ import 'dart:math' show min;
 import 'dart:ui';
 
 import 'package:PiliPlus/common/style.dart';
+import 'package:PiliPlus/common/widgets/defer_until_route_settled.dart';
 import 'package:PiliPlus/common/widgets/pair.dart';
 import 'package:PiliPlus/common/widgets/progress_bar/segment_progress_bar.dart';
 import 'package:PiliPlus/common/widgets/scaffold/mini_scaffold.dart';
@@ -15,6 +16,7 @@ import 'package:PiliPlus/http/browser_ua.dart';
 import 'package:PiliPlus/http/fav.dart';
 import 'package:PiliPlus/http/init.dart';
 import 'package:PiliPlus/http/loading_state.dart';
+import 'package:PiliPlus/http/search.dart';
 import 'package:PiliPlus/http/user.dart';
 import 'package:PiliPlus/http/video.dart';
 import 'package:PiliPlus/models/common/account_type.dart';
@@ -116,7 +118,46 @@ class VideoDetailController extends GetxController
 
   // 请求返回的视频信息
   late PlayUrlModel data;
-  final RxBool videoState = false.obs;
+  late final RxBool videoState = false.obs;
+  // [PATCH PERF-24] 转场与异步 cid 门禁
+  final PushTransitionGate pushGate = PushTransitionGate();
+  Completer<int?>? _cidCompleter;
+  bool _cidResolveFailed = false;
+
+  Future<int?> ensureCid() async {
+    final current = cid.value;
+    if (current > 0) return current;
+    if (_cidResolveFailed) return null;
+    if (_cidCompleter case final completer?) {
+      return completer.future;
+    }
+    return _startResolveCid();
+  }
+
+  Future<int?> _startResolveCid() async {
+    final completer = _cidCompleter ??= Completer<int?>();
+    try {
+      final int? part = args['part'];
+      final res = await SearchHttp.ab2cWithDimension(
+        aid: aid,
+        bvid: bvid,
+        part: part,
+      );
+      if (isClosed) {
+        if (!completer.isCompleted) completer.complete(null);
+        return null;
+      }
+      final resolvedCid = res?.cid;
+      if (resolvedCid != null && resolvedCid > 0) {
+        cid.value = resolvedCid;
+        if (!completer.isCompleted) completer.complete(resolvedCid);
+        return resolvedCid;
+      }
+    } catch (_) {}
+    _cidResolveFailed = true;
+    if (!completer.isCompleted) completer.complete(null);
+    return null;
+  }
 
   /// 播放器配置 画质 音质 解码格式
   final Rxn<VideoQuality> currentVideoQa = Rxn<VideoQuality>();
@@ -410,7 +451,7 @@ class VideoDetailController extends GetxController
 
     bvid = args['bvid'];
     aid = args['aid'];
-    cid = RxInt(args['cid']);
+    cid = RxInt(args['cid'] ?? 0);
     epId = args['epId'];
     seasonId = args['seasonId'];
     pgcType = args['pgcType'];
@@ -421,6 +462,10 @@ class VideoDetailController extends GetxController
     sourceType = args['sourceType'] ?? SourceType.normal;
     isFileSource = sourceType == SourceType.file;
     isPlayAll = sourceType != SourceType.normal && !isFileSource;
+    // [PATCH PERF-24] 无 cid 卡片立即进页后，在 onInit 即刻并发解析 ab2cWithDimension
+    if (isUgc && !isFileSource && cid.value <= 0) {
+      _startResolveCid();
+    }
     if (isFileSource) {
       initFileSource(args['entry']);
     } else if (isPlayAll) {
@@ -758,6 +803,11 @@ class VideoDetailController extends GetxController
     bool? autoplay,
     bool autoFullScreenFlag = false,
   }) async {
+    // [PATCH PERF-24] 首入转场期间暂缓原生播放器初始化与挂载，转场落定后再创建 MPV
+    if (!pushGate.isSettled) {
+      await pushGate.waitSettled();
+      if (isClosed) return;
+    }
     Duration? seek = defaultST ?? playedTime;
     if (seek == .zero) seek = null;
     seek ??= getFirstSegment();
@@ -877,6 +927,15 @@ class VideoDetailController extends GetxController
 
   @pragma('vm:prefer-inline')
   Future<void> _queryVideoUrl(bool fromReset, bool autoFullScreenFlag) async {
+    // [PATCH PERF-24] 若由无 cid 入口秒进，等待并发 ab2cWithDimension 解析完成后再查流与 SponsorBlock
+    if (cid.value <= 0) {
+      final resolvedCid = await ensureCid();
+      if (isClosed || resolvedCid == null || resolvedCid <= 0) {
+        _autoPlay.value = false;
+        videoState.value = false;
+        return;
+      }
+    }
     if (plPlayerController.enableSponsorBlock && isBlock && !fromReset) {
       querySponsorBlock(bvid: bvid, cid: cid.value);
     }
@@ -1291,6 +1350,10 @@ class VideoDetailController extends GetxController
 
   @override
   void onClose() {
+    pushGate.dispose();
+    if (_cidCompleter case final completer? when !completer.isCompleted) {
+      completer.complete(null);
+    }
     cid.close();
     if (isFileSource) {
       cacheLocalProgress();

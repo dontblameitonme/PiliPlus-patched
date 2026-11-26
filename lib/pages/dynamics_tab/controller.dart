@@ -56,6 +56,7 @@ class DynamicsTabController
   Future<void> onRemove(int index, dynamic dynamicId) async {
     final res = await MsgHttp.removeDynamic(dynIdStr: dynamicId);
     if (res.isSuccess) {
+      listRevision++;
       loadingState
         ..value.data!.removeAt(index)
         ..refresh();
@@ -73,6 +74,7 @@ class DynamicsTabController
 
   void onBlock(int index) {
     if (dynamicsType != .up) {
+      listRevision++;
       loadingState
         ..value.data!.removeAt(index)
         ..refresh();
@@ -88,6 +90,7 @@ class DynamicsTabController
         list[i].visible = true;
       }
       item.modules.moduleFold = null;
+      listRevision++;
       loadingState.refresh();
     } catch (_) {}
   }

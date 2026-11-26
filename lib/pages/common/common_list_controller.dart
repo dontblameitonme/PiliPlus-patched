@@ -12,6 +12,10 @@ abstract class CommonListController<R, T> extends CommonController<R, T> {
   // [PATCH PERF-07] 加载更多失败标记（配合列表底部重试）
   bool loadMoreFailed = false;
 
+  /// [PATCH PERF-24] 仅在列表重排/删除/整表刷新时递增；单纯末尾追加页时保持不变，
+  /// 配合 MemoizedScrollItem 避免 loadingState.refresh() 引起已显示卡片全量重绘。
+  int listRevision = 0;
+
   @override
   Rx<LoadingState<List<T>?>> loadingState =
       LoadingState<List<T>?>.loading().obs;
@@ -45,6 +49,7 @@ abstract class CommonListController<R, T> extends CommonController<R, T> {
         }
         handleListResponse(dataList);
         if (isRefresh) {
+          listRevision++;
           checkIsEnd(dataList.length);
           loadingState.value = Success(dataList);
         } else if (loadingState.value case Success(:final response)) {
@@ -75,11 +80,13 @@ abstract class CommonListController<R, T> extends CommonController<R, T> {
     page = 1;
     isEnd = false;
     loadMoreFailed = false;
+    listRevision++;
     return super.onRefresh();
   }
 
   @override
   Future<void> onReload() {
+    listRevision++;
     loadingState.value = LoadingState<List<T>?>.loading();
     return super.onReload();
   }

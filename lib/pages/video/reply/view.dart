@@ -1,8 +1,10 @@
 import 'package:PiliPlus/common/skeleton/video_reply.dart';
 import 'package:PiliPlus/common/sliver_single_child_delegate.dart';
 import 'package:PiliPlus/common/style.dart';
+import 'package:PiliPlus/common/widgets/defer_until_route_settled.dart';
 import 'package:PiliPlus/common/widgets/flutter/refresh_indicator.dart';
 import 'package:PiliPlus/common/widgets/loading_widget/http_error.dart';
+import 'package:PiliPlus/common/widgets/memoized_scroll_item.dart';
 import 'package:PiliPlus/common/widgets/scaffold/simple_scaffold.dart';
 import 'package:PiliPlus/common/widgets/sliver/sliver_floating_header.dart';
 import 'package:PiliPlus/grpc/bilibili/main/community/reply/v1.pb.dart'
@@ -148,16 +150,18 @@ class _VideoReplyPanelState extends State<VideoReplyPanel>
     );
   }
 
+  static const _replySkeleton = SliverPrototypeExtentList(
+    prototypeItem: VideoReplySkeleton(),
+    delegate: SliverSingleChildDelegate(
+      count: 6,
+      child: VideoReplySkeleton(),
+    ),
+  );
+
   Widget _buildBody(LoadingState<List<ReplyInfo>?> loadingState) {
     switch (loadingState) {
       case Loading():
-        return const SliverPrototypeExtentList(
-          prototypeItem: VideoReplySkeleton(),
-          delegate: SliverSingleChildDelegate(
-            count: 5,
-            child: VideoReplySkeleton(),
-          ),
-        );
+        return _replySkeleton;
       case Success(:final response):
         if (response != null && response.isNotEmpty) {
           var count = response.length + 1;
@@ -167,46 +171,64 @@ class _VideoReplyPanelState extends State<VideoReplyPanel>
             count++;
           }
           // [PATCH PERF-12] SliverList -> SuperSliverList
-          return SuperSliverList.builder(
-            itemBuilder: (context, index) {
-              if (hasVote) {
-                if (index == 0) {
-                  return buildVoteCard(context, colorScheme, voteCard);
+          // [PATCH PERF-24] 转场动画未落定时先显示轻量骨架，结束后再构建 SuperSliverList
+          return DeferUntilRouteSettled(
+            placeholder: _replySkeleton,
+            builder: (_) => SuperSliverList.builder(
+              itemBuilder: (context, index) {
+                if (hasVote) {
+                  if (index == 0) {
+                    return buildVoteCard(context, colorScheme, voteCard);
+                  } else {
+                    index--;
+                  }
+                }
+                if (index == response.length) {
+                  return buildFooter();
                 } else {
-                  index--;
-                }
-              }
-              if (index == response.length) {
-                return buildFooter();
-              } else {
-                final item = response[index];
-                final child = ReplyItemGrpc(
-                  replyItem: item,
-                  replyLevel: widget.replyLevel,
-                  replyReply: controller.replyReply,
-                  onReply: controller.onReply,
-                  onDelete: (item, subIndex) =>
-                      controller.onRemove(index, item, subIndex),
-                  upMid: controller.upMid,
-                  getTag: () => heroTag,
-                  onCheckReply: controller.onCheckReply,
-                  onToggleTop: (item) => controller.onToggleTop(
-                    item,
-                    index,
-                    controller.videoCtr.aid,
-                    controller.replyType,
-                  ),
-                );
-                if (item.id == controller.targetRootRpId) {
-                  return controller.colorAnimWrapper(
-                    colorScheme,
-                    child,
+                  // [PATCH PERF-24] 评论区提前 4 项预加载下一页，避免滑到底部再等待请求
+                  if (index >= response.length - 4) {
+                    controller.onLoadMore();
+                  }
+                  final item = response[index];
+                  final isTarget = item.id == controller.targetRootRpId;
+                  final memoChild = MemoizedScrollItem(
+                    data: (
+                      item,
+                      item.replies.length,
+                      item.count,
+                      item.replyControl.isUpTop,
+                    ),
+                    revision: controller.listRevision,
+                    builder: (_) => ReplyItemGrpc(
+                      replyItem: item,
+                      replyLevel: widget.replyLevel,
+                      replyReply: controller.replyReply,
+                      onReply: controller.onReply,
+                      onDelete: (item, subIndex) =>
+                          controller.onRemove(index, item, subIndex),
+                      upMid: controller.upMid,
+                      getTag: () => heroTag,
+                      onCheckReply: controller.onCheckReply,
+                      onToggleTop: (item) => controller.onToggleTop(
+                        item,
+                        index,
+                        controller.videoCtr.aid,
+                        controller.replyType,
+                      ),
+                    ),
                   );
+                  if (isTarget) {
+                    return controller.colorAnimWrapper(
+                      colorScheme,
+                      memoChild,
+                    );
+                  }
+                  return memoChild;
                 }
-                return child;
-              }
-            },
-            itemCount: count,
+              },
+              itemCount: count,
+            ),
           );
         }
 

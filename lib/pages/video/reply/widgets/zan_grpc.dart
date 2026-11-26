@@ -92,6 +92,13 @@ class ZanButtonGrpc extends StatelessWidget {
     SmartDialog.showToast('账号未登录');
   }
 
+  // [PATCH PERF-24] 复用静态 const ButtonStyle，避免每次评论 build 重复构造
+  static const ButtonStyle _likeBtnStyle = ButtonStyle(
+    padding: WidgetStatePropertyAll(EdgeInsets.zero),
+    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+    visualDensity: VisualDensity.compact,
+  );
+
   @override
   Widget build(BuildContext context) {
     final isLogin = Accounts.main.isLogin;
@@ -101,11 +108,6 @@ class ZanButtonGrpc extends StatelessWidget {
     final isDislike = action == $fixnum.Int64.TWO;
     final outline = theme.colorScheme.outline;
     final primary = theme.colorScheme.primary;
-    final ButtonStyle style = TextButton.styleFrom(
-      padding: EdgeInsets.zero,
-      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-      visualDensity: VisualDensity.compact,
-    );
 
     @pragma('vm:prefer-inline')
     Future<void> wrapProcessing(
@@ -154,7 +156,7 @@ class ZanButtonGrpc extends StatelessWidget {
         SizedBox(
           height: 32,
           child: TextButton(
-            style: style,
+            style: _likeBtnStyle,
             onPressed: isLogin
                 ? () => wrapProcessing(onLikeReply)
                 : _toastNotLogin,

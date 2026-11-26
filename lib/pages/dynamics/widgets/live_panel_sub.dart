@@ -13,6 +13,7 @@ Widget livePanelSub(
   required ThemeData theme,
   required DynamicItemModel item,
   required bool isDetail,
+  double? maxWidth,
 }) {
   LivePlayInfo? live = item
       .modules
@@ -39,14 +40,23 @@ Widget livePanelSub(
         Stack(
           clipBehavior: Clip.none,
           children: [
-            LayoutBuilder(
-              builder: (context, constraints) => NetworkImgLayer(
-                width: constraints.maxWidth,
-                height: constraints.maxWidth / Style.aspectRatio,
+            // [PATCH PERF-24] 一级动态卡片已知列宽时免去 LayoutBuilder
+            if (floor == 1 && maxWidth != null)
+              NetworkImgLayer(
+                width: maxWidth - 24,
+                height: (maxWidth - 24) / Style.aspectRatio,
                 src: live.cover,
                 quality: 40,
+              )
+            else
+              LayoutBuilder(
+                builder: (context, constraints) => NetworkImgLayer(
+                  width: constraints.maxWidth,
+                  height: constraints.maxWidth / Style.aspectRatio,
+                  src: live.cover,
+                  quality: 40,
+                ),
               ),
-            ),
             PBadge(
               text: live.watchedShow?.textLarge,
               top: 6,

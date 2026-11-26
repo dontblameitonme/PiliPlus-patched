@@ -215,23 +215,28 @@ class _MainAppState extends PopScopeState<MainApp>
 
       if (_mainController.hideBottomBar) {
         if (_mainController.barOffset case final barOffset?) {
-          return Obx(
-            () => FractionalTranslation(
-              translation: Offset(
-                0.0,
-                barOffset.value / Style.topBarHeight,
+          // [PATCH PERF-24] 底栏偏移与显隐动画加入 RepaintBoundary，并将显隐时长对齐至 250ms
+          return RepaintBoundary(
+            child: Obx(
+              () => FractionalTranslation(
+                translation: Offset(
+                  0.0,
+                  barOffset.value / Style.topBarHeight,
+                ),
+                child: bottomNav,
               ),
-              child: bottomNav,
             ),
           );
         }
         if (_mainController.showBottomBar case final showBottomBar?) {
-          return Obx(
-            () => AnimatedSlide(
-              curve: Curves.easeInOutCubicEmphasized,
-              duration: const Duration(milliseconds: 500),
-              offset: Offset(0, showBottomBar.value ? 0 : 1),
-              child: bottomNav,
+          return RepaintBoundary(
+            child: Obx(
+              () => AnimatedSlide(
+                curve: Curves.easeInOutCubicEmphasized,
+                duration: const Duration(milliseconds: 250),
+                offset: Offset(0, showBottomBar.value ? 0 : 1),
+                child: bottomNav,
+              ),
             ),
           );
         }
